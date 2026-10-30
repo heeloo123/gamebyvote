@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @font-face{font-family:Fredoka;font-weight:600;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-600-normal.woff2) format("woff2")}
+  @font-face{font-family:Fredoka;font-weight:700;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-700-normal.woff2) format("woff2")}
+  html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#000}
+  #root{position:absolute;left:0;top:0;width:360px;height:640px;transform:scale(3);transform-origin:0 0;overflow:hidden}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .layer{position:absolute;inset:0;pointer-events:none;font-family:Fredoka,"Noto Color Emoji",sans-serif}
+  .card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;opacity:0;transition:opacity .35s}
+  .card.on{opacity:1}
+  #intro{background:#1f1630;color:#fff}
+  #intro .big{font-size:34px;font-weight:700;line-height:1.2}
+  #intro .small{margin-top:18px;font-size:16px;color:#c9b8e8;font-weight:600}
+  #intro .chips{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  #intro .chip{background:#ffffff1a;border:1px solid #ffffff33;border-radius:999px;padding:6px 12px;font-size:13px;color:#e8defa}
+  .cap{position:absolute;left:16px;right:16px;top:132px;text-align:center;opacity:0;transform:translateY(10px) scale(.96);transition:opacity .25s,transform .25s}
+  .cap.on{opacity:1;transform:none}
+  .cap span{display:inline;background:#1f1630;color:#fff;font-weight:700;font-size:24px;line-height:1.55;padding:4px 10px;border-radius:10px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .cap.yellow span{background:#ffcf5c;color:#1f1630}
+  #outro{background:linear-gradient(#ffe9d6,#ffd1dc);color:#1f1630}
+  #outro .big{font-size:34px;font-weight:700;line-height:1.15}
+  #outro .sub{font-size:17px;font-weight:600;margin:10px 0 22px;color:#5b4a68}
+  .opt{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:12px 18px;margin:7px 0;width:250px;font-size:20px;font-weight:600;box-shadow:0 4px 0 #0000001a;transform:translateX(-30px);opacity:0;transition:all .3s}
+  .opt.on{transform:none;opacity:1}
+  .opt .e{font-size:30px}
+  #outro .handle{margin-top:22px;font-size:18px;font-weight:700;background:#1f1630;color:#fff;border-radius:999px;padding:8px 18px}
+</style>
+</head>
+<body>
+<div id="root">
+<iframe id="game" src="game/index.html"></iframe>
+
+<div class="layer" id="caps">
+  <div class="cap" id="c1"><span>I'm using AI to build a game.<br>From zero. 🤖🎮</span></div>
+  <div class="cap yellow" id="c2"><span>Day 0. Meet Mochi 💛</span></div>
+  <div class="cap" id="c3"><span>Right now it does ONE thing…</span></div>
+  <div class="cap yellow" id="c4"><span>…and that's where YOU come in 👀</span></div>
+</div>
+
+<div class="layer card" id="intro">
+  <div class="big">Everyone's teaching you<br>how to use AI…</div>
+  <div class="chips"><span class="chip">"10 prompts you need"</span><span class="chip">"AI side hustles"</span><span class="chip">"ChatGPT tips"</span></div>
+  <div class="small">I'm doing something different 👇</div>
+</div>
+
+<div class="layer card" id="outro">
+  <div class="big">YOU decide what<br>it becomes 🗳️</div>
+  <div class="sub">Comment your vote. Most votes win.</div>
+  <div class="opt" id="o1"><span class="e">🌾</span>Cozy farm</div>
+  <div class="opt" id="o2"><span class="e">🐶</span>Pet adventure</div>
+  <div class="opt" id="o3"><span class="e">🐟</span>Underwater world</div>
+  <div class="handle">Follow @gamebyvote</div>
+</div>
+</div>
+
+<script>
+  // show(id) / hide(id) are driven by the recorder on a timeline
+  window.show = id => document.getElementById(id).classList.add('on');
+  window.hide = id => document.getElementById(id).classList.remove('on');
+</script>
+</body>
+</html>

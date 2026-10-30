@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Game By Vote — Day 0</title>
+<style>
+  :root{--sky1:#ffe9d6;--sky2:#ffd1dc;--grass:#9fd88a;--grass2:#7fc46c;--ink:#4a3b52;--pet:#fff3b0;--pet2:#ffe066;--cheek:#ff9eb5;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;font-family:"Trebuchet MS",system-ui,sans-serif;color:var(--ink);overflow:hidden;user-select:none}
+  body{background:linear-gradient(var(--sky1),var(--sky2) 60%,var(--grass) 60%,var(--grass2));display:flex;flex-direction:column;align-items:center}
+  header{margin-top:4vh;text-align:center}
+  .tag{display:inline-block;background:#fff;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:bold;box-shadow:0 2px 0 #0001}
+  h1{margin:8px 0 0;font-size:clamp(26px,7vw,40px);letter-spacing:1px}
+  #mood{margin-top:6px;font-size:16px;min-height:22px}
+  .bar{width:min(70vw,280px);height:16px;background:#fff8;border-radius:999px;margin:8px auto 0;overflow:hidden;border:2px solid #fff}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,#ff9eb5,#ffcf5c);transition:width .25s}
+  #stage{position:relative;flex:1;width:100%;display:flex;align-items:center;justify-content:center}
+  #pet{width:min(55vw,230px);cursor:pointer;transition:transform .12s;filter:drop-shadow(0 10px 0 #0002)}
+  #pet.bounce{animation:boing .35s}
+  @keyframes boing{0%{transform:scale(1,1)}30%{transform:scale(1.15,.85)}60%{transform:scale(.92,1.1)}100%{transform:scale(1,1)}}
+  #pet.idle{animation:breathe 2.4s ease-in-out infinite}
+  @keyframes breathe{50%{transform:translateY(-6px)}}
+  .heart{position:absolute;font-size:26px;pointer-events:none;animation:float 1s ease-out forwards}
+  @keyframes float{to{transform:translateY(-120px) scale(1.4);opacity:0}}
+  footer{margin-bottom:5vh;text-align:center;background:#fffc;padding:10px 16px;border-radius:16px;max-width:90vw;font-size:14px}
+  footer b{font-size:16px}
+  #count{font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">🗳️ DAY 0 · @gamebyvote</span>
+  <h1>Mochi</h1>
+  <div id="mood">Tap me! 👋</div>
+  <div class="bar"><div class="fill" id="fill"></div></div>
+</header>
+<div id="stage">
+  <svg id="pet" class="idle" viewBox="0 0 200 180" aria-label="Mochi the pet">
+    <ellipse cx="100" cy="170" rx="62" ry="8" fill="#0001"/>
+    <path d="M30 120 Q30 40 100 40 Q170 40 170 120 Q170 165 100 165 Q30 165 30 120Z" fill="var(--pet)" stroke="var(--pet2)" stroke-width="5"/>
+    <path d="M60 52 Q52 20 72 30 Q80 36 78 50Z" fill="var(--pet)" stroke="var(--pet2)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M140 52 Q148 20 128 30 Q120 36 122 50Z" fill="var(--pet)" stroke="var(--pet2)" stroke-width="5" stroke-linejoin="round"/>
+    <g id="eyes">
+      <ellipse cx="75" cy="100" rx="8" ry="11" fill="var(--ink)"/>
+      <ellipse cx="125" cy="100" rx="8" ry="11" fill="var(--ink)"/>
+      <circle cx="78" cy="96" r="3" fill="#fff"/><circle cx="128" cy="96" r="3" fill="#fff"/>
+    </g>
+    <g id="happyeyes" style="display:none" stroke="var(--ink)" stroke-width="5" fill="none" stroke-linecap="round">
+      <path d="M66 102 Q75 90 84 102"/><path d="M116 102 Q125 90 134 102"/>
+    </g>
+    <ellipse cx="60" cy="120" rx="11" ry="7" fill="var(--cheek)" opacity=".7"/>
+    <ellipse cx="140" cy="120" rx="11" ry="7" fill="var(--cheek)" opacity=".7"/>
+    <path id="mouth" d="M92 120 Q100 128 108 120" stroke="var(--ink)" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </svg>
+</div>
+<footer>
+  Pats: <span id="count">0</span><br>
+  <b>This game is built by AI 🤖 — YOU vote what it becomes.</b><br>
+  Follow @gamebyvote to decide what's next 👇
+</footer>
+<script>
+  const pet=document.getElementById('pet'),fill=document.getElementById('fill'),
+        mood=document.getElementById('mood'),count=document.getElementById('count'),
+        eyes=document.getElementById('eyes'),happy=document.getElementById('happyeyes'),
+        mouth=document.getElementById('mouth');
+  let pats=0,joy=0,decay;
+  const moods=[[0,'Tap me! 👋'],[15,'Hehe 😊'],[40,'More pats pls 🥺'],[70,'So happy!! 💛'],[95,'MAX HAPPINESS ✨']];
+  try{pats=+localStorage.getItem('gbv_pats')||0}catch(e){}
+  count.textContent=pats;
+  function render(){
+    fill.style.width=joy+'%';
+    mood.textContent=moods.filter(m=>joy>=m[0]).pop()[1];
+    const glad=joy>=15;
+    eyes.style.display=glad?'none':'';happy.style.display=glad?'':'none';
+    mouth.setAttribute('d',glad?'M88 118 Q100 136 112 118':'M92 120 Q100 128 108 120');
+  }
+  function heart(x,y){
+    const h=document.createElement('div');h.className='heart';
+    h.textContent=['💛','💗','✨','🌸'][Math.floor(Math.random()*4)];
+    h.style.left=(x-13+(Math.random()*40-20))+'px';h.style.top=(y-20)+'px';
+    document.body.appendChild(h);setTimeout(()=>h.remove(),1000);
+  }
+  pet.addEventListener('pointerdown',e=>{
+    pats++;count.textContent=pats;try{localStorage.setItem('gbv_pats',pats)}catch(_){}
+    joy=Math.min(100,joy+7);render();heart(e.clientX,e.clientY);
+    pet.classList.remove('idle','bounce');void pet.offsetWidth;pet.classList.add('bounce');
+    clearTimeout(decay);decay=setTimeout(()=>pet.classList.add('idle'),400);
+  });
+  setInterval(()=>{if(joy>0){joy=Math.max(0,joy-2);render();}},800);
+  render();
+</script>
+</body>
+</html>

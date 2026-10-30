@@ -20,11 +20,16 @@ const W = 180, H = 320;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const wrap = document.getElementById('wrap'), petBox = document.getElementById('pet');
 ctx.imageSmoothingEnabled = false;
-let scale = 2;
+// The 180x320 game area stays centred; the canvas grows to fill the screen and the world
+// (sky, hills, grass, fence) extends to every edge, so there are no empty borders.
+let scale = 2, VW = W, VH = H, ox = 0, oy = 0;
 function fit() {
   scale = Math.min(innerWidth / W, innerHeight / H);
   if (scale >= 1) scale = Math.max(1, Math.floor(scale * 2) / 2); // half-step scales keep pixels even
-  wrap.style.width = W * scale + 'px'; wrap.style.height = H * scale + 'px';
+  VW = Math.max(W, Math.ceil(innerWidth / scale)); VH = Math.max(H, Math.ceil(innerHeight / scale));
+  ox = Math.floor((VW - W) / 2); oy = Math.floor((VH - H) / 2);
+  cv.width = VW; cv.height = VH; ctx.imageSmoothingEnabled = false;
+  wrap.style.width = VW * scale + 'px'; wrap.style.height = VH * scale + 'px';
   placePetBox();
 }
 addEventListener('resize', fit);
@@ -88,7 +93,7 @@ const parts = [];
 try { pats = +localStorage.getItem('mochi_pats_a') || 0; } catch (e) {}
 
 function placePetBox() {
-  petBox.style.left = M.x * scale + 'px'; petBox.style.top = M.y * scale + 'px';
+  petBox.style.left = (M.x + ox) * scale + 'px'; petBox.style.top = (M.y + oy) * scale + 'px';
   petBox.style.width = MW * scale + 'px'; petBox.style.height = MH * scale + 'px';
 }
 
@@ -105,7 +110,7 @@ function celebrate(now) {
 
 cv.addEventListener('pointerdown', e => {
   const r = cv.getBoundingClientRect();
-  const lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  const lx = (e.clientX - r.left) / r.width * VW - ox, ly = (e.clientY - r.top) / r.height * VH - oy;
   if (lx > M.x - 12 && lx < M.x + MW + 12 && ly > M.y - 12 && ly < M.y + MH + 12) pat(lx, ly, performance.now());
 });
 
@@ -124,28 +129,30 @@ function cloud(x, y) {
 function drawWorld(t) {
   // sky bands
   const bands = ['#ffc8d8', '#ffd2dd', '#ffdbe0', '#ffe3df', '#ffeadc', '#fff0d8'];
-  bands.forEach((c, i) => rect(0, i * 34, W, 34, c));
+  const L = -ox, R = VW - ox;                       // left/right edge of the screen in game coordinates
+  rect(L, -oy, VW, oy, bands[0]);                   // sky above the game area
+  bands.forEach((c, i) => rect(L, i * 34, VW, 34, c));
   // sun
   rect(136, 70, 20, 14, '#fff6c2'); rect(139, 67, 14, 20, '#fff6c2'); rect(140, 72, 12, 10, '#fff1a8');
   // clouds drifting
-  cloud(((t / 90) % (W + 60)) - 40, 92);
-  cloud(((t / 140 + 110) % (W + 60)) - 40, 118);
+  cloud(L + ((t / 90) % (VW + 60)) - 40, 92);
+  cloud(L + ((t / 140 + 110) % (VW + 60)) - 40, 118);
   // hills
-  for (let x = 0; x < W; x++) {
+  for (let x = L; x < R; x++) {
     const h1 = 182 - Math.round(10 * Math.sin(x / 26) + 6 * Math.sin(x / 11 + 1));
     rect(x, h1, 1, 210 - h1, '#a8dba0');
   }
-  for (let x = 0; x < W; x++) {
+  for (let x = L; x < R; x++) {
     const h2 = 194 - Math.round(7 * Math.sin(x / 19 + 2));
     rect(x, h2, 1, 210 - h2, '#93d08a');
   }
   // ground
-  rect(0, 200, W, H - 200, '#7cc46a');
-  for (let y = 206; y < H; y += 9) for (let x = (y * 7) % 13; x < W; x += 13) { rect(x, y, 1, 2, '#6ab35a'); rect(x + 2, y + 1, 1, 1, '#6ab35a'); }
+  rect(L, 200, VW, VH - oy - 200, '#7cc46a');
+  for (let y = 206; y < VH - oy; y += 9) for (let x = (y * 7) % 13 - Math.ceil(ox / 13) * 13; x < R; x += 13) { rect(x, y, 1, 2, '#6ab35a'); rect(x + 2, y + 1, 1, 1, '#6ab35a'); }
   // fence
-  rect(0, 206, W, 2, '#c99a6b');
-  rect(0, 212, W, 2, '#c99a6b');
-  for (let x = 4; x < W; x += 16) { rect(x, 202, 3, 14, '#b5845a'); rect(x, 202, 3, 1, '#e0b88a'); }
+  rect(L, 206, VW, 2, '#c99a6b');
+  rect(L, 212, VW, 2, '#c99a6b');
+  for (let x = 4 - Math.ceil(ox / 16) * 16; x < R; x += 16) { rect(x, 202, 3, 14, '#b5845a'); rect(x, 202, 3, 1, '#e0b88a'); }
   // tilled soil plot
   rect(30, 238, 120, 44, '#6e4430');
   rect(32, 240, 116, 40, '#8a5a3c');
@@ -200,6 +207,7 @@ function drawHUD(t, now) {
 let decayAt = 0;
 function frame(now) {
   if (now > decayAt) { if (joy > 0 && now - lastPat > 1500) joy--; decayAt = now + 1500; }
+  ctx.setTransform(1, 0, 0, 1, ox, oy);             // draw in game coordinates, centred on screen
   drawWorld(now);
   drawMochi(now, now);
   drawParticles();

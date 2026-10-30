@@ -1,0 +1,58 @@
+{
+  "title": "Day 0: which Mochi?",
+  "durationMs": 21000,
+  "storyTag": "Day 0 · @gamebyvote",
+  "screens": [
+    { "id": "pixel",   "src": "../styles/pixel.html",   "badge": { "letter": "A", "label": "Pixel" } },
+    { "id": "cartoon", "src": "../styles/cartoon.html", "badge": { "letter": "B", "label": "Cartoon" } },
+    { "id": "clay",    "src": "../styles/clay.html",    "badge": { "letter": "C", "label": "Clay 3D" } }
+  ],
+  "startScreen": "pixel",
+  "intro": {
+    "big": "Everyone's<br>teaching you<br>how to use AI…",
+    "chips": ["\"10 prompts you need\"", "\"AI side hustles\"", "\"ChatGPT tips\""],
+    "small": "I'm doing something different 👇"
+  },
+  "captions": [
+    { "id": "c1", "html": "I'm using AI to build a game.<br>From zero. 🤖🎮", "top": 204 },
+    { "id": "c2", "html": "Day 0. Meet Mochi 💛", "top": 204, "yellow": true },
+    { "id": "c3", "html": "But what should Mochi<br>LOOK like? 🤔", "top": 410 },
+    { "id": "c4", "html": "Your vote decides 👇", "top": 470, "yellow": true }
+  ],
+  "outro": {
+    "big": "Which Mochi<br>should I build? 🗳️",
+    "sub": "Comment A, B or C. Top vote wins.",
+    "options": [
+      { "letter": "A", "label": "Pixel",   "screen": "pixel" },
+      { "letter": "B", "label": "Cartoon", "screen": "cartoon" },
+      { "letter": "C", "label": "Clay 3D", "screen": "clay" }
+    ],
+    "next": "Next vote: what world Mochi lives in 🌍",
+    "handle": "Follow @gamebyvote"
+  },
+  "timeline": [
+    [0,     "show",    "intro"],
+    [3000,  "hide",    "intro"],
+    [3200,  "show",    "c1"],
+    [5400,  "hide",    "c1"],
+    [5600,  "screen",  "pixel"],
+    [5600,  "show",    "c2"],
+    [7700,  "hide",    "c2"],
+    [8800,  "screen",  "cartoon"],
+    [8900,  "show",    "c3"],
+    [11200, "hide",    "c3"],
+    [11800, "screen",  "clay"],
+    [13200, "show",    "c4"],
+    [14800, "hide",    "c4"],
+    [14900, "nobadge", null],
+    [15000, "show",    "outro"],
+    [15500, "option",  0],
+    [15900, "option",  1],
+    [16300, "option",  2]
+  ],
+  "taps": [
+    { "screen": "pixel",   "fromMs": 5900,  "toMs": 8600,  "everyMs": 230 },
+    { "screen": "cartoon", "fromMs": 9100,  "toMs": 11600, "everyMs": 260 },
+    { "screen": "clay",    "fromMs": 12100, "toMs": 14600, "everyMs": 260 }
+  ]
+}

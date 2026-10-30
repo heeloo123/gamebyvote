@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Story graphic for an episode's vote: story.html?ep=<ep>, rendered at 1080x1920 by make_story.sh.
+     Uses the episode's outro (question + options) and leaves room in the middle for Instagram's poll sticker. -->
+<style>
+  @font-face{font-family:Fredoka;font-weight:600;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-600-normal.woff2) format("woff2")}
+  @font-face{font-family:Fredoka;font-weight:700;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-700-normal.woff2) format("woff2")}
+  html,body{margin:0;width:1080px;height:1920px;overflow:hidden}
+  #root{position:absolute;left:0;top:0;width:360px;height:640px;transform:scale(3);transform-origin:0 0;
+        background:linear-gradient(#2a1f3d,#1f1630);color:#fff;font-family:Fredoka,"Noto Color Emoji",sans-serif;text-align:center}
+  /* Instagram covers roughly the top 85px and bottom 110px (in this 360x640 layout) with its own UI */
+  .tag{position:absolute;top:96px;left:50%;transform:translateX(-50%);background:#ffcf5c;color:#1f1630;border-radius:999px;padding:5px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+  .big{position:absolute;top:132px;left:20px;right:20px;font-size:30px;font-weight:700;line-height:1.15}
+  .opts{position:absolute;top:214px;left:0;right:0;display:flex;gap:10px;justify-content:center}
+  .opt{width:86px}
+  .thumb{position:relative;width:86px;height:153px;border-radius:14px;overflow:hidden;border:3px solid #fff}
+  .thumb iframe{position:absolute;left:0;top:0;width:360px;height:640px;border:0;transform:scale(.2389);transform-origin:0 0}
+  .opt b{display:block;margin-top:4px;font-size:20px}
+  .opt small{display:block;font-size:13px;font-weight:600;color:#c9b8e8}
+  .slot{position:absolute;top:430px;left:0;right:0;font-size:15px;font-weight:600;color:#ffcf5c}
+  .foot{position:absolute;top:450px;left:0;right:0;font-size:12px;font-weight:600;color:#c9b8e8}
+  /* 470-528: left empty for the poll sticker */
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="tag" id="tag"></div>
+  <div class="big" id="big"></div>
+  <div class="opts" id="opts"></div>
+  <div class="slot">👇 Vote in the poll</div>
+  <div class="foot">or comment on the Reel</div>
+</div>
+<script>
+  const name = new URLSearchParams(location.search).get('ep');
+  window.ready = fetch(`episodes/${name}/episode.json`).then(r => r.json()).then(ep => {
+    const src = Object.fromEntries(ep.screens.map(s => [s.id, s.src]));
+    document.getElementById('tag').textContent = ep.storyTag || 'New episode · @gamebyvote';
+    document.getElementById('big').innerHTML = ep.outro.big;
+    for (const o of ep.outro.options) {
+      const card = document.createElement('div'); card.className = 'opt';
+      const thumb = document.createElement('div'); thumb.className = 'thumb';
+      if (o.screen) { const f = document.createElement('iframe'); f.src = src[o.screen]; thumb.append(f); }
+      else if (o.image) { thumb.innerHTML = `<img src="${o.image}" style="width:100%;height:100%;object-fit:cover">`; }
+      const b = document.createElement('b'); b.textContent = o.letter;
+      const s = document.createElement('small'); s.textContent = o.label;
+      card.append(thumb, b, s); document.getElementById('opts').append(card);
+    }
+    return true;
+  });
+</script>
+</body>
+</html>

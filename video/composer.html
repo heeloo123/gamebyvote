@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Reel composer: the game styles plus caption overlays, intro card and vote card.
-     Rendered at 1080x1920 by record.py (everything is laid out at 360x640 and scaled 3x). -->
+<!-- Reel composer: loads episodes/<ep>/episode.json (?ep=<ep>) and lays out the game screens, captions,
+     badges, intro card and vote card at 360x640, scaled 3x to 1080x1920. record.py drives the timeline. -->
 <style>
   @font-face{font-family:Fredoka;font-weight:600;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-600-normal.woff2) format("woff2")}
   @font-face{font-family:Fredoka;font-weight:700;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-700-normal.woff2) format("woff2")}
   html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#000}
   #root{position:absolute;left:0;top:0;width:360px;height:640px;transform:scale(3);transform-origin:0 0;overflow:hidden}
-  .game{position:absolute;inset:0;width:100%;height:100%;border:0;visibility:hidden}
-  .game.on{visibility:visible}
-  .layer{position:absolute;inset:0;pointer-events:none;font-family:Fredoka,"Noto Color Emoji",sans-serif}
-  .card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;opacity:0;transition:opacity .35s}
+  /* only the current screen (and the next one, warmed up just before it appears) is rendered */
+  .game{position:absolute;inset:0;width:100%;height:100%;border:0;display:none}
+  .game.warm{display:block;z-index:0}
+  .game.on{display:block;z-index:1}
+  .layer{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:Fredoka,"Noto Color Emoji",sans-serif}
+  /* cards stay display:none until shown, so hidden game thumbnails don't animate in the background */
+  .card{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;opacity:0;transition:opacity .35s}
+  .card.vis{display:flex}
   .card.on{opacity:1}
 
   #intro{background:#1f1630;color:#fff}
@@ -22,11 +26,9 @@
   #intro .chips{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
   #intro .chip{background:#ffffff1a;border:1px solid #ffffff33;border-radius:999px;padding:6px 12px;font-size:13px;color:#e8defa}
 
-  .cap{position:absolute;left:14px;right:14px;top:204px;text-align:center;opacity:0;transform:translateY(10px) scale(.96);transition:opacity .25s,transform .25s}
+  .cap{position:absolute;left:14px;right:14px;text-align:center;opacity:0;transform:translateY(10px) scale(.96);transition:opacity .25s,transform .25s}
   .cap.on{opacity:1;transform:none}
   .cap span{display:inline;background:#1f1630;color:#fff;font-weight:700;font-size:24px;line-height:1.55;padding:4px 10px;border-radius:10px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-  #c3{top:410px}
-  #c4{top:470px}
   .cap.yellow span{background:#ffcf5c;color:#1f1630}
 
   .badge{position:absolute;left:50%;top:158px;display:flex;align-items:center;gap:8px;background:#1f1630;color:#fff;border-radius:999px;
@@ -50,48 +52,70 @@
 </head>
 <body>
 <div id="root">
-  <iframe class="game" id="f_pixel" src="../styles/pixel.html"></iframe>
-  <iframe class="game" id="f_cartoon" src="../styles/cartoon.html"></iframe>
-  <iframe class="game" id="f_clay" src="../styles/clay.html"></iframe>
-
-  <div class="layer">
-    <div class="badge" id="b_pixel"><i>A</i>Pixel</div>
-    <div class="badge" id="b_cartoon"><i>B</i>Cartoon</div>
-    <div class="badge" id="b_clay"><i>C</i>Clay 3D</div>
-    <div class="cap" id="c1"><span>I'm using AI to build a game.<br>From zero. 🤖🎮</span></div>
-    <div class="cap yellow" id="c2"><span>Day 0. Meet Mochi 💛</span></div>
-    <div class="cap" id="c3"><span>But what should Mochi<br>LOOK like? 🤔</span></div>
-    <div class="cap yellow" id="c4"><span>Your vote decides 👇</span></div>
-  </div>
-
-  <div class="layer card" id="intro">
-    <div class="big">Everyone's<br>teaching you<br>how to use AI…</div>
-    <div class="chips"><span class="chip">"10 prompts you need"</span><span class="chip">"AI side hustles"</span><span class="chip">"ChatGPT tips"</span></div>
-    <div class="small">I'm doing something different 👇</div>
-  </div>
-
-  <div class="layer card" id="outro">
-    <div class="big">Which Mochi<br>should I build? 🗳️</div>
-    <div class="sub">Comment A, B or C. Top vote wins.</div>
-    <div class="opts">
-      <div class="opt" id="o1"><div class="thumb"><iframe src="../styles/pixel.html"></iframe></div><b>A</b><small>Pixel</small></div>
-      <div class="opt" id="o2"><div class="thumb"><iframe src="../styles/cartoon.html"></iframe></div><b>B</b><small>Cartoon</small></div>
-      <div class="opt" id="o3"><div class="thumb"><iframe src="../styles/clay.html"></iframe></div><b>C</b><small>Clay 3D</small></div>
-    </div>
-    <div class="next">Next vote: what world Mochi lives in 🌍</div>
-    <div class="handle">Follow @gamebyvote</div>
-  </div>
+  <div id="screens"></div>
+  <div class="layer" id="overlays"></div>
+  <div class="layer card" id="intro"><div class="big"></div><div class="chips"></div><div class="small"></div></div>
+  <div class="layer card" id="outro"><div class="big"></div><div class="sub"></div><div class="opts"></div><div class="next"></div><div class="handle"></div></div>
 </div>
 
 <script>
-  // Driven by record.py on a timeline.
-  window.show = id => document.getElementById(id).classList.add('on');
-  window.hide = id => document.getElementById(id).classList.remove('on');
-  window.setStyle = (s, badge = true) => {
-    document.querySelectorAll('.game').forEach(f => f.classList.toggle('on', f.id === 'f_' + s));
-    document.querySelectorAll('.badge').forEach(b => b.classList.toggle('on', badge && b.id === 'b_' + s));
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+  function build(ep) {
+    for (const s of ep.screens) {
+      const f = el('iframe', 'game'); f.id = 's_' + s.id; f.src = s.src; $('screens').append(f);
+      if (s.badge) { const b = el('div', 'badge', `<i>${s.badge.letter}</i>${s.badge.label}`); b.id = 'b_' + s.id; $('overlays').append(b); }
+    }
+    for (const c of ep.captions) {
+      const d = el('div', 'cap' + (c.yellow ? ' yellow' : ''), `<span>${c.html}</span>`);
+      d.id = c.id; d.style.top = c.top + 'px'; $('overlays').append(d);
+    }
+    const i = ep.intro;
+    if (i) {
+      $('intro').querySelector('.big').innerHTML = i.big;
+      i.chips.forEach(t => $('intro').querySelector('.chips').append(el('span', 'chip', t)));
+      $('intro').querySelector('.small').innerHTML = i.small;
+    }
+    const o = ep.outro, src = Object.fromEntries(ep.screens.map(s => [s.id, s.src]));
+    $('outro').querySelector('.big').innerHTML = o.big;
+    $('outro').querySelector('.sub').innerHTML = o.sub;
+    o.options.forEach((opt, n) => {
+      const card = el('div', 'opt'); card.id = 'o' + n;
+      const thumb = el('div', 'thumb');
+      if (opt.screen) { const f = el('iframe'); f.src = src[opt.screen]; thumb.append(f); }
+      else if (opt.image) { thumb.innerHTML = `<img src="${opt.image}" style="width:100%;height:100%;object-fit:cover">`; }
+      card.append(thumb, el('b', '', opt.letter), el('small', '', opt.label));
+      $('outro').querySelector('.opts').append(card);
+    });
+    $('outro').querySelector('.next').innerHTML = o.next || '';
+    $('outro').querySelector('.handle').innerHTML = o.handle || '';
+    if (!o.next) $('outro').querySelector('.next').remove();
+  }
+
+  // timeline actions, called by record.py
+  window.show = id => {
+    const e = $(id);
+    if (e.classList.contains('card')) { e.classList.add('vis'); void e.offsetWidth; }
+    e.classList.add('on');
   };
-  window.hideBadges = () => document.querySelectorAll('.badge').forEach(b => b.classList.remove('on'));
+  window.hide = id => {
+    const e = $(id);
+    e.classList.remove('on');
+    if (e.classList.contains('card')) setTimeout(() => e.classList.remove('vis'), 400);
+  };
+  window.showScreen = (id, badge = true) => {
+    document.querySelectorAll('.game').forEach(f => { f.classList.toggle('on', f.id === 's_' + id); f.classList.remove('warm'); });
+    document.querySelectorAll('.badge').forEach(b => b.classList.toggle('on', badge && b.id === 'b_' + id));
+  };
+  window.warm = id => $('s_' + id).classList.add('warm');
+  window.nobadge = () => document.querySelectorAll('.badge').forEach(b => b.classList.remove('on'));
+  window.option = n => $('o' + n).classList.add('on');
+
+  const name = new URLSearchParams(location.search).get('ep');
+  window.ready = fetch(`episodes/${name}/episode.json`).then(r => r.json()).then(ep => {
+    build(ep); showScreen(ep.startScreen, false); return true;
+  });
 </script>
 </body>
 </html>

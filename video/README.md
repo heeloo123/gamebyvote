@@ -1,12 +1,13 @@
 # Reel pipeline
 
-Turns the game into a vertical Instagram Reel automatically.
+Turns the game into a vertical Instagram Reel (1080x1920, 30 fps, with music) automatically.
 
-- `composer.html`: the game plus caption overlays, intro card and vote card.
-- `record.py`: plays a timeline (captions + taps) in a headless browser and captures frames at 1080x1920.
-- `make_reel.sh`: runs the recording and encodes `out/reel.mp4` with FFmpeg.
+- `composer.html`: loads the game styles from `../styles/` and adds the captions, style badges, intro card and vote card.
+- `record.py`: plays a timeline (captions, style switches, taps) in headless Chromium and captures real frames.
+- `music.py`: generates an original chiptune track, so Reels have royalty-free sound.
+- `make_reel.sh`: runs all of the above and writes `out/reel.mp4`.
+- `episodes/`: the caption for each episode.
 
-Each episode: edit the captions/vote options in `composer.html` and the timeline in `record.py`, then run `./make_reel.sh`.
+Each episode: edit the captions and vote card in `composer.html` and the `TIMELINE` / `TAPS` in `record.py`, then run `./make_reel.sh`.
 
-Needs: Python with Playwright (+ Chromium), FFmpeg, Node (`npm install` for the Fredoka font).
-`composer.html` expects the game at `game/index.html` next to it (copy or symlink `../index.html`).
+Needs Python with Playwright (and Chromium), NumPy, FFmpeg, and `npm install` here for the Fredoka caption font.

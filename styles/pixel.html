@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Mochi · Style A · Pixel</title>
+<style>
+  @font-face{font-family:"Press Start 2P";src:url(../assets/press-start-2p.woff2) format("woff2");font-display:block}
+  html,body{margin:0;height:100%;background:#2a1f33;overflow:hidden;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+  #wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer}
+  #pet{position:absolute;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="180" height="320"></canvas><div id="pet"></div></div>
+<script>
+// ---------- setup ----------
+const W = 180, H = 320;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const wrap = document.getElementById('wrap'), petBox = document.getElementById('pet');
+ctx.imageSmoothingEnabled = false;
+let scale = 2;
+function fit() {
+  scale = Math.min(innerWidth / W, innerHeight / H);
+  if (scale >= 1) scale = Math.max(1, Math.floor(scale * 2) / 2); // half-step scales keep pixels even
+  wrap.style.width = W * scale + 'px'; wrap.style.height = H * scale + 'px';
+  placePetBox();
+}
+addEventListener('resize', fit);
+
+// ---------- sprites (one char = one pixel) ----------
+const PAL = {
+  o: '#d9a93b', y: '#fff3b0', Y: '#ffe066', k: '#4a3b52', p: '#ff9eb5', w: '#ffffff',
+  r: '#ff5c8a', R: '#c93d68', g: '#c9b2bf', G: '#a8909e',
+  s: '#c98a4b', S: '#7a4a2a', h: '#f0c08a', l: '#6ab35a', L: '#4e9a45',
+};
+const MOCHI_BASE = [
+  '...oo......oo...',
+  '..oyyo....oyyo..',
+  '..oyyyooooyyyo..',
+  '.oyyyyyyyyyyyyo.',
+  '.oyyyyyyyyyyyyo.',
+  'oyyy#yyyyyy#yyyo',
+  'oyyy#yyyyyy#yyyo',
+  'oypyyyykkyyyypyo',
+  'oyyyyyyyyyyyyyyo',
+  'oYyyyyyyyyyyyyYo',
+  '.oYyyyyyyyyyyYo.',
+  '..ooYYYYYYYYoo..',
+  '....oooooooo....',
+];
+function mochiRows(mode) {            // mode: open | happy | blink
+  return MOCHI_BASE.map((row, i) => {
+    if (mode === 'open') return row.replace(/#/g, 'k');
+    if (mode === 'blink') return i === 6 ? row.replace(/#/g, 'k') : row.replace(/#/g, 'y');
+    // happy: ^ ^ eyes
+    if (i === 5) return row.replace(/#/g, 'k');
+    if (i === 6) return 'oyykykyyyykykyyo';
+    return row;
+  });
+}
+const HEART = ['.rr.rr.', 'rwrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'];
+const HEART_EMPTY = HEART.map(r => r.replace(/[rw]/g, 'g'));
+const SPROUT = ['.l.l.', 'lLlLl', '..L..'];
+
+function makeSprite(rows) {
+  const c = document.createElement('canvas');
+  c.width = rows[0].length; c.height = rows.length;
+  const x = c.getContext('2d');
+  rows.forEach((row, j) => [...row].forEach((ch, i) => {
+    if (PAL[ch]) { x.fillStyle = PAL[ch]; x.fillRect(i, j, 1, 1); }
+  }));
+  return c;
+}
+const SPR = {
+  open: makeSprite(mochiRows('open')), happy: makeSprite(mochiRows('happy')), blink: makeSprite(mochiRows('blink')),
+  heart: makeSprite(HEART), heartEmpty: makeSprite(HEART_EMPTY), sprout: makeSprite(SPROUT),
+};
+
+// ---------- state ----------
+const MAX = 10;                       // pats needed to fill all 5 hearts
+const M = { x: 58, y: 198, s: 4 };    // Mochi top-left; 16x13 sprite drawn at 4x
+const MW = 16 * M.s, MH = 13 * M.s;
+let joy = 0, pats = 0, squash = 0, lastPat = -9999, blinkUntil = 0, nextBlink = 2500;
+let maxedAt = -1e9;
+const parts = [];
+try { pats = +localStorage.getItem('mochi_pats_a') || 0; } catch (e) {}
+
+function placePetBox() {
+  petBox.style.left = M.x * scale + 'px'; petBox.style.top = M.y * scale + 'px';
+  petBox.style.width = MW * scale + 'px'; petBox.style.height = MH * scale + 'px';
+}
+
+function pat(lx, ly, now) {
+  pats++; joy = Math.min(MAX, joy + 1); squash = 1; lastPat = now;
+  try { localStorage.setItem('mochi_pats_a', pats); } catch (e) {}
+  for (let i = 0; i < 2; i++) parts.push({ x: lx - 3 + (Math.random() * 16 - 8), y: ly - 6, vy: -(0.5 + Math.random() * 0.4), life: 1 });
+  if (joy >= MAX && now - maxedAt > 3000) celebrate(now);
+}
+function celebrate(now) {
+  maxedAt = now;
+  for (let i = 0; i < 8; i++) parts.push({ x: M.x + MW / 2 + (Math.random() * 40 - 20), y: M.y + 10, vy: -(0.6 + Math.random() * 0.5), life: 1, star: true });
+}
+
+cv.addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect();
+  const lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  if (lx > M.x - 12 && lx < M.x + MW + 12 && ly > M.y - 12 && ly < M.y + MH + 12) pat(lx, ly, performance.now());
+});
+
+// ---------- drawing helpers ----------
+function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
+function text(s, x, y, c, align = 'center') {
+  ctx.font = '8px "Press Start 2P"'; ctx.textAlign = align; ctx.textBaseline = 'top';
+  ctx.fillStyle = c; ctx.fillText(s, x | 0, y | 0);
+}
+function cloud(x, y) {
+  rect(x + 4, y, 16, 4, '#fff'); rect(x, y + 4, 28, 5, '#fff'); rect(x + 18, y - 3, 8, 4, '#fff');
+  rect(x, y + 9, 28, 1, '#f3dbe6');
+}
+
+// ---------- scene ----------
+function drawWorld(t) {
+  // sky bands
+  const bands = ['#ffc8d8', '#ffd2dd', '#ffdbe0', '#ffe3df', '#ffeadc', '#fff0d8'];
+  bands.forEach((c, i) => rect(0, i * 34, W, 34, c));
+  // sun
+  rect(136, 70, 20, 14, '#fff6c2'); rect(139, 67, 14, 20, '#fff6c2'); rect(140, 72, 12, 10, '#fff1a8');
+  // clouds drifting
+  cloud(((t / 90) % (W + 60)) - 40, 92);
+  cloud(((t / 140 + 110) % (W + 60)) - 40, 118);
+  // hills
+  for (let x = 0; x < W; x++) {
+    const h1 = 182 - Math.round(10 * Math.sin(x / 26) + 6 * Math.sin(x / 11 + 1));
+    rect(x, h1, 1, 210 - h1, '#a8dba0');
+  }
+  for (let x = 0; x < W; x++) {
+    const h2 = 194 - Math.round(7 * Math.sin(x / 19 + 2));
+    rect(x, h2, 1, 210 - h2, '#93d08a');
+  }
+  // ground
+  rect(0, 200, W, H - 200, '#7cc46a');
+  for (let y = 206; y < H; y += 9) for (let x = (y * 7) % 13; x < W; x += 13) { rect(x, y, 1, 2, '#6ab35a'); rect(x + 2, y + 1, 1, 1, '#6ab35a'); }
+  // fence
+  rect(0, 206, W, 2, '#c99a6b');
+  rect(0, 212, W, 2, '#c99a6b');
+  for (let x = 4; x < W; x += 16) { rect(x, 202, 3, 14, '#b5845a'); rect(x, 202, 3, 1, '#e0b88a'); }
+  // tilled soil plot
+  rect(30, 238, 120, 44, '#6e4430');
+  rect(32, 240, 116, 40, '#8a5a3c');
+  for (let y = 244; y < 280; y += 6) rect(34, y, 112, 2, '#7a4d33');
+  // sprouts at the corners of the plot
+  ctx.drawImage(SPR.sprout, 36, 266); ctx.drawImage(SPR.sprout, 138, 248); ctx.drawImage(SPR.sprout, 40, 246);
+}
+
+function drawMochi(t, now) {
+  const bob = Math.floor(t / 600) % 2;            // 1px idle bob
+  if (now > nextBlink) { blinkUntil = now + 140; nextBlink = now + 2200 + Math.random() * 2500; }
+  const mode = now < blinkUntil ? 'blink' : (joy >= 3 || now - lastPat < 700) ? 'happy' : 'open';
+  // squash & stretch after a pat
+  squash = Math.max(0, squash - 0.08);
+  const sq = Math.sin(squash * Math.PI) * 0.1;
+  const w = Math.round(MW * (1 + sq)), h = Math.round(MH * (1 - sq));
+  const x = M.x + MW / 2 - w / 2, y = M.y + MH - h - (squash > 0 ? 0 : bob);
+  rect(M.x + 6, M.y + MH - 1, MW - 12, 3, '#5f3b29');  // shadow on soil
+  ctx.drawImage(SPR[mode], Math.round(x), Math.round(y), w, h);
+}
+
+function drawParticles() {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.y += p.vy; p.life -= 0.018;
+    if (p.life <= 0) { parts.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, p.life * 2);
+    if (p.star) { rect(p.x, p.y, 2, 2, '#fff6c2'); rect(p.x - 1, p.y + 0.5, 4, 1, '#ffe066'); }
+    else ctx.drawImage(SPR.heart, Math.round(p.x), Math.round(p.y));
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawHUD(t, now) {
+  // top tag + title
+  rect(62, 10, 56, 13, '#2a1f33'); text('DAY 0', 90, 13, '#ffe066');
+  text('MOCHI', 91, 31, '#7a3355'); text('MOCHI', 90, 30, '#ffffff');
+  text('HELLO WORLD', 90, 46, '#4a3b52');
+  // hearts
+  const full = Math.round(joy / MAX * 5);
+  for (let i = 0; i < 5; i++) ctx.drawImage(i < full ? SPR.heart : SPR.heartEmpty, 62 + i * 12, 60, 7, 6);
+  // bottom panel
+  rect(8, 288, 164, 24, '#2a1f33');
+  text('PATS:' + pats, 90, 292, '#c9b8e8');
+  let msg;
+  if (now - maxedAt < 2500) msg = 'MAX HAPPY!!';
+  else msg = joy === 0 ? 'TAP MOCHI!' : joy < 4 ? 'HEHE ^^' : joy < 8 ? 'MORE PATS PLS' : 'SO HAPPY!!';
+  text(msg, 90, 302, '#ffffff');
+}
+
+// ---------- loop ----------
+let decayAt = 0;
+function frame(now) {
+  if (now > decayAt) { if (joy > 0 && now - lastPat > 1500) joy--; decayAt = now + 1500; }
+  drawWorld(now);
+  drawMochi(now, now);
+  drawParticles();
+  drawHUD(now, now);
+  requestAnimationFrame(frame);
+}
+document.fonts.load('8px "Press Start 2P"').finally(() => { fit(); requestAnimationFrame(frame); });
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Game By Vote — Day 0</title>
+<title>Mochi · Style B · Cartoon</title>
 <style>
   :root{--sky1:#ffe9d6;--sky2:#ffd1dc;--grass:#9fd88a;--grass2:#7fc46c;--ink:#4a3b52;--pet:#fff3b0;--pet2:#ffe066;--cheek:#ff9eb5;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -66,7 +66,7 @@
         mouth=document.getElementById('mouth');
   let pats=0,joy=0,decay;
   const moods=[[0,'Tap me! 👋'],[15,'Hehe 😊'],[40,'More pats pls 🥺'],[70,'So happy!! 💛'],[95,'MAX HAPPINESS ✨']];
-  try{pats=+localStorage.getItem('gbv_pats')||0}catch(e){}
+  try{pats=+localStorage.getItem('mochi_pats_b')||0}catch(e){}
   count.textContent=pats;
   function render(){
     fill.style.width=joy+'%';
@@ -82,7 +82,7 @@
     document.body.appendChild(h);setTimeout(()=>h.remove(),1000);
   }
   pet.addEventListener('pointerdown',e=>{
-    pats++;count.textContent=pats;try{localStorage.setItem('gbv_pats',pats)}catch(_){}
+    pats++;count.textContent=pats;try{localStorage.setItem('mochi_pats_b',pats)}catch(_){}
     joy=Math.min(100,joy+7);render();heart(e.clientX,e.clientY);
     pet.classList.remove('idle','bounce');void pet.offsetWidth;pet.classList.add('bounce');
     clearTimeout(decay);decay=setTimeout(()=>pet.classList.add('idle'),400);

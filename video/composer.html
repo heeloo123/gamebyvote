@@ -36,6 +36,12 @@
   .badge.on{opacity:1;transform:translate(-50%,0)}
   .badge i{font-style:normal;width:30px;height:30px;border-radius:50%;background:#ffcf5c;color:#1f1630;display:grid;place-items:center;font-size:18px}
 
+  /* hook: the opening frame, with the choices already moving on screen (no text-only intro) */
+  #hook{background:linear-gradient(#2a1f3d,#1f1630);color:#fff;justify-content:center;transition:none}
+  #hook .big{font-size:36px;font-weight:700;line-height:1.1}
+  #hook .sub{font-size:17px;font-weight:600;margin:10px 0 20px;color:#ffcf5c}
+  #hook .opt{opacity:1;transform:none}
+
   #outro{background:linear-gradient(#2a1f3d,#1f1630);color:#fff;justify-content:flex-start;padding-top:84px}
   #outro .big{font-size:31px;font-weight:700;line-height:1.15}
   #outro .sub{font-size:16px;font-weight:600;margin:8px 0 18px;color:#c9b8e8}
@@ -55,6 +61,7 @@
   <div id="screens"></div>
   <div class="layer" id="overlays"></div>
   <div class="layer card" id="intro"><div class="big"></div><div class="chips"></div><div class="small"></div></div>
+  <div class="layer card" id="hook"><div class="big"></div><div class="sub"></div><div class="opts"></div></div>
   <div class="layer card" id="outro"><div class="big"></div><div class="sub"></div><div class="opts"></div><div class="next"></div><div class="handle"></div></div>
 </div>
 
@@ -77,17 +84,22 @@
       i.chips.forEach(t => $('intro').querySelector('.chips').append(el('span', 'chip', t)));
       $('intro').querySelector('.small').innerHTML = i.small;
     }
-    const o = ep.outro, src = Object.fromEntries(ep.screens.map(s => [s.id, s.src]));
-    $('outro').querySelector('.big').innerHTML = o.big;
-    $('outro').querySelector('.sub').innerHTML = o.sub;
-    o.options.forEach((opt, n) => {
-      const card = el('div', 'opt'); card.id = 'o' + n;
-      const thumb = el('div', 'thumb');
-      if (opt.screen) { const f = el('iframe'); f.src = src[opt.screen]; thumb.append(f); }
-      else if (opt.image) { thumb.innerHTML = `<img src="${opt.image}" style="width:100%;height:100%;object-fit:cover">`; }
-      card.append(thumb, el('b', '', opt.letter), el('small', '', opt.label));
-      $('outro').querySelector('.opts').append(card);
-    });
+    const src = Object.fromEntries(ep.screens.map(s => [s.id, s.src]));
+    const fill = (card, cfg, prefix) => {
+      card.querySelector('.big').innerHTML = cfg.big;
+      card.querySelector('.sub').innerHTML = cfg.sub || '';
+      cfg.options.forEach((opt, n) => {
+        const c = el('div', 'opt'); c.id = prefix + n;
+        const thumb = el('div', 'thumb');
+        if (opt.screen) { const f = el('iframe'); f.src = src[opt.screen]; thumb.append(f); }
+        else if (opt.image) { thumb.innerHTML = `<img src="${opt.image}" style="width:100%;height:100%;object-fit:cover">`; }
+        c.append(thumb, el('b', '', opt.letter), el('small', '', opt.label));
+        card.querySelector('.opts').append(c);
+      });
+    };
+    const o = ep.outro;
+    fill($('outro'), o, 'o');
+    if (ep.hook) fill($('hook'), ep.hook, 'h');
     $('outro').querySelector('.next').innerHTML = o.next || '';
     $('outro').querySelector('.handle').innerHTML = o.handle || '';
     if (!o.next) $('outro').querySelector('.next').remove();
@@ -114,7 +126,7 @@
 
   const name = new URLSearchParams(location.search).get('ep');
   window.ready = fetch(`episodes/${name}/episode.json`).then(r => r.json()).then(ep => {
-    build(ep); showScreen(ep.startScreen, false); return true;
+    build(ep); showScreen(ep.startScreen, false); if (ep.hook) show('hook'); return true;
   });
 </script>
 </body>

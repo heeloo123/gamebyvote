@@ -1,0 +1,55 @@
+{
+  "title": "Day 0 (recut): pick Mochi's look",
+  "durationMs": 13000,
+  "storyTag": "Day 0 · @gamebyvote",
+  "screens": [
+    { "id": "pixel",   "src": "../styles/pixel.html",   "badge": { "letter": "A", "label": "Pixel" } },
+    { "id": "cartoon", "src": "../styles/cartoon.html", "badge": { "letter": "B", "label": "Cartoon" } },
+    { "id": "clay",    "src": "../styles/clay.html",    "badge": { "letter": "C", "label": "Clay 3D" } }
+  ],
+  "startScreen": "pixel",
+  "hook": {
+    "big": "Pick one 👇",
+    "sub": "AI builds a whole game around it",
+    "options": [
+      { "letter": "A", "label": "Pixel",   "screen": "pixel" },
+      { "letter": "B", "label": "Cartoon", "screen": "cartoon" },
+      { "letter": "C", "label": "Clay 3D", "screen": "clay" }
+    ]
+  },
+  "captions": [
+    { "id": "c1", "html": "A game YOU design.<br>One vote at a time 🎮", "top": 204 },
+    { "id": "c2", "html": "Votes close Tue 8pm ⏰", "top": 470, "yellow": true }
+  ],
+  "outro": {
+    "big": "A, B or C?",
+    "sub": "Comment one letter. Top vote wins.",
+    "options": [
+      { "letter": "A", "label": "Pixel",   "screen": "pixel" },
+      { "letter": "B", "label": "Cartoon", "screen": "cartoon" },
+      { "letter": "C", "label": "Clay 3D", "screen": "clay" }
+    ],
+    "next": "Wed: Mochi rebuilt in the winning style",
+    "handle": "Follow @gamebyvote"
+  },
+  "timeline": [
+    [2200,  "hide",    "hook"],
+    [2200,  "screen",  "pixel"],
+    [2400,  "show",    "c1"],
+    [4300,  "hide",    "c1"],
+    [4400,  "screen",  "cartoon"],
+    [6600,  "screen",  "clay"],
+    [6800,  "show",    "c2"],
+    [8600,  "hide",    "c2"],
+    [8700,  "nobadge", null],
+    [8700,  "show",    "outro"],
+    [8900,  "option",  0],
+    [9100,  "option",  1],
+    [9300,  "option",  2]
+  ],
+  "taps": [
+    { "screen": "pixel",   "fromMs": 2300, "toMs": 4300, "everyMs": 200 },
+    { "screen": "cartoon", "fromMs": 4500, "toMs": 6500, "everyMs": 220 },
+    { "screen": "clay",    "fromMs": 6700, "toMs": 8600, "everyMs": 220 }
+  ]
+}

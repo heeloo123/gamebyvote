@@ -22,6 +22,7 @@ Turns the game into a vertical Instagram Reel (1080x1920, 30 fps, with music) an
 - `captions`: `{id, html, top, yellow?}`; `top` is in the 360x640 layout.
 - `timeline`: `[ms, action, arg]` with actions `show`/`hide` (a caption, `intro` or `outro`), `screen`, `nobadge`, `option` (reveal vote option n).
 - `taps`: `{screen, fromMs, toMs, everyMs}`; taps land on the screen's `#pet` element.
+- `hook`: optional opening card (`big`, `sub`, `options`), shown from the very first frame with the choices already on screen. Prefer it to `intro`: a text-only first 3 seconds lost 80% of viewers on Day 0.
 - `outro`: the vote card (`big`, `sub`, `options`, `next`, `handle`).
 
 Needs Python with Playwright (and Chromium), NumPy, FFmpeg, and `npm install` here for the Fredoka caption font.

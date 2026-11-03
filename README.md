@@ -12,8 +12,8 @@ A monster farm. Kelvin from Accounting has moved onto your farm and sent you a b
 
 - `scenes/ep1.html?live=1`: the playable Day 1 farm (tap Kelvin for his bill, tap the seeds). Without `?live`, the same scene plays the Episode 1 Reel beats; `?pour=water|cola|lava` draws the vote cards.
 
-## The farm game (preview)
-`game/` is the real game (Phaser 3 + Vite): one farm bigger than the screen, the camera follows the farmer; plant, harvest mystery monster crops (rarity + mutations), sell, buy seeds; at night Kelvin acts once and leaves a bill in the morning. Game data lives in `game/src/data/config.json`; saves are versioned in localStorage. Build with `cd game && npm install && npm run build`, which writes `play/` (committed, served by GitHub Pages). Add `?debug=1` for fast days and crops, `?reset=1` to wipe the save.
+## The game: Claim Rejected (preview at /play/)
+`game/` is the real game (plain JS + Vite, no engine). You're the new finance hire; each day 5 expense claims (the same for everyone that day), swipe right to approve and left to reject, judged by the rules on the board. Kelvin from Accounting adds a rule every day (5 active at most) and sneaks in his own dodgy claims; he remembers yesterday. End of shift: a Wordle-style share grid, then optional unpaid overtime. Claims, rules and every line of Kelvin's live in `game/src/data/claims.json`; balance and the cast in `game/src/data/config.json`; saves are versioned in localStorage. Build with `cd game && npm install && npm run build`, which writes `play/` (committed, served by GitHub Pages). `?debug=1` adds a next-day button, `?reset=1` wipes the save.
 
 ## Repo layout
 - `game/`: game source; `play/`: its build

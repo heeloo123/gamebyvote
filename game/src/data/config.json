@@ -1,50 +1,25 @@
 {
-  "_doc": "All tunable game data (v0.4). Times are real seconds. Change balance here, not in code.",
-  "startCoins": 20,
-  "seedPrice": 5,
-  "freeSeeds": 3,
-  "growSecByPlant": [5, 5, 10, 20, 30, 30, 45, 45, 60, 60],
-  "growSec": 120,
-  "guaranteedGoldAtHarvest": 4,
-  "overnight": {
-    "_doc": "After this many harvests Kelvin hands over a sealed seed: long timer, rare or better. The reason to come back.",
-    "afterHarvests": 6,
-    "sec": 14400,
-    "minRarity": 2
+  "_doc": "Claim Rejected (v0.5). Balance lives here; claims, rules and Kelvin's lines live in claims.json.",
+  "claimsPerDay": 5,
+  "startRules": 2,
+  "maxRules": 5,
+  "budget": { "start": 100, "wrongApprove": 12, "kelvinFooled": 18, "dailyTopUp": 15 },
+  "morale": { "start": 100, "wrongReject": 15, "correct": 2 },
+  "cast": {
+    "_doc": "frame = Kenney Tiny Dungeon tile; kelvin uses his own sprite.",
+    "gloop": { "name": "Gloop", "role": "HR", "frame": 108 },
+    "cfo": { "name": "Cyclops CFO", "role": "Head of Finance", "frame": 109 },
+    "bat": { "name": "Bat Invoice", "role": "Sales", "frame": 120 },
+    "ghost": { "name": "Ghost Receipt", "role": "IT · WFH since 2020", "frame": 121 },
+    "auntie": { "name": "Auntie Rosie", "role": "Admin & Pantry", "frame": 99 },
+    "intern": { "name": "Jun Wei", "role": "Intern", "frame": 85 },
+    "boss": { "name": "Big Boss Tan", "role": "Founder", "frame": 84 },
+    "kelvin": { "name": "Kelvin", "role": "SENIOR Accounting", "frame": -1 }
   },
-  "rarity": [
-    { "id": "common", "name": "Common", "chance": 70, "value": 8, "crop": "gloop", "color": "#7fd88a" },
-    { "id": "uncommon", "name": "Uncommon", "chance": 22, "value": 15, "crop": "batvoice", "color": "#6ac0ff" },
-    { "id": "rare", "name": "Rare", "chance": 7, "value": 40, "crop": "receipt", "color": "#ff7ad0" },
-    { "id": "epic", "name": "Epic", "chance": 1, "value": 150, "crop": "cfo", "color": "#ffbf3c" }
-  ],
-  "mutations": [
-    { "id": "gold", "name": "Gold", "chance": 2, "mult": 5 },
-    { "id": "rainbow", "name": "Rainbow", "chance": 0.5, "mult": 15 },
-    { "id": "giant", "name": "Giant", "chance": 3, "mult": 2 }
-  ],
-  "crops": {
-    "_doc": "Monster crops. frame = Tiny Dungeon tile index. Book = 4 species x 4 forms (normal + 3 mutations).",
-    "gloop": { "name": "Gloop", "frame": 108 },
-    "batvoice": { "name": "Bat Invoice", "frame": 120 },
-    "receipt": { "name": "Ghost Receipt", "frame": 121 },
-    "cfo": { "name": "Cyclops CFO", "frame": 109 }
-  },
-  "kelvin": {
-    "_doc": "Kelvin bills some harvests: always from minRarityBilled up, otherwise billChance. You PAY (taxPct of the value) or DISPUTE (coin flip: win = he pays you winMult x the tax; lose = he confiscates the monster).",
-    "firstBillAtHarvest": 2,
-    "billChance": 0.3,
-    "minRarityBilled": 2,
-    "taxPct": 0.5,
-    "minTax": 3,
-    "disputeWinChance": 0.5,
-    "winMult": 2,
-    "welcomeBackAfterSec": 600,
-    "storageFee": 3
-  },
+  "share": { "url": "heeloo123.github.io/gamebyvote" },
   "vote": {
     "episode": 1,
-    "question": "What do I water the first seeds with?",
+    "question": "What does Kelvin spill on the receipts?",
     "options": ["water", "cola", "lava"],
     "closes": "2026-11-08T22:00:00+08:00",
     "winner": null

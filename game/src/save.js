@@ -1,39 +1,36 @@
-// Versioned save in localStorage. Updates only ever add fields (migrate), so votes never wipe a farm.
+// Versioned save in localStorage. Updates only ever add fields (migrate), so votes never wipe a career.
 import CFG from './data/config.json';
 
 const KEY = 'gamebyvote.save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
-export function fresh(now) {
+export function fresh() {
   return {
     v: SAVE_VERSION,
-    coins: CFG.startCoins,
-    plots: {},                     // index 0..8 -> {crop, plantedAt, growMs, sealed}
-    planted: 0,                    // seeds planted so far (sets the early grow times)
-    harvests: 0,
-    book: {},                      // "crop:form" -> count (form = normal | gold | rainbow | giant)
-    billNo: 0,
-    sealedGiven: false, sealedReady: false,
-    lastSeen: now,
-    seen: {},                      // tutorial steps shown
-    stats: { disputesWon: 0, disputesLost: 0, paid: 0 },
+    day: 1,                        // career day: decides which rules are active
+    shift: null,                   // {date, day, ids, i, results:[{ok, kelvin}], caught, fooled}
+    budget: CFG.budget.start,
+    morale: CFG.morale.start,
+    grudge: 0,                     // how often you've caught Kelvin (he gets pettier)
+    yesterday: null,               // {caught, wrong, right}
+    streak: 0,                     // perfect shifts in a row
+    seenClaims: {},
+    intro: false,
+    stats: { shifts: 0, right: 0, wrong: 0, caught: 0, fooled: 0, fired: 0, overtime: 0 },
   };
 }
 
 function migrate(s) {
-  if (s.v < 3) {                   // v0.3 -> v0.4: new monster patch; keep coins
-    const f = fresh(Date.now());
-    s = { ...f, coins: Math.max(f.coins, s.coins | 0) };
-  }
+  if (s.v < 4) return fresh();     // the farm (v0.1–v0.4) became Claim Rejected: new career
   return s;
 }
 
-export function load(now) {
+export function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) { const s = migrate(JSON.parse(raw)); if (s && s.v) return s; }
   } catch (e) {}
-  return fresh(now);
+  return fresh();
 }
 
 export function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }

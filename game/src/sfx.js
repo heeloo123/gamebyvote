@@ -22,6 +22,10 @@ function noise(dur, { vol = 0.15, at = 0, decay = 0.004 } = {}) {
 }
 
 export const sfx = {
+  stamp: () => { noise(0.12, { vol: 0.35, decay: 0.012 }); tone(90, 0.14, { type: 'triangle', vol: 0.12, slide: -40 }); },
+  swish: () => noise(0.18, { vol: 0.06, decay: 0.05 }),
+  ding: () => { tone(1319, 0.08, { vol: 0.05 }); tone(1760, 0.16, { vol: 0.05, at: 0.08 }); },
+  buzz: () => { tone(110, 0.25, { type: 'sawtooth', vol: 0.05 }); tone(116, 0.25, { type: 'sawtooth', vol: 0.05 }); },
   tap: () => tone(880, 0.05, { vol: 0.03 }),
   step: () => noise(0.03, { vol: 0.03, decay: 0.006 }),
   plant: () => { noise(0.08, { vol: 0.12, decay: 0.02 }); tone(220, 0.08, { type: 'triangle', vol: 0.08, slide: -80 }); },

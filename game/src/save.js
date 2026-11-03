@@ -2,32 +2,28 @@
 import CFG from './data/config.json';
 
 const KEY = 'gamebyvote.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export function fresh(now) {
   return {
     v: SAVE_VERSION,
-    epoch: now,                    // game clock start (real ms); day n starts at epoch + n * dayLength
-    offset: 0,                     // ms added by sleeping (skips to morning; crops grow too)
     coins: CFG.startCoins,
-    seeds: CFG.startSeeds,
-    basket: [],                    // harvested monsters: {crop, rarity, mutation, value}
-    plots: {},                     // "x,y" -> {plantedAt}
-    workers: [],                   // {name, frame}
-    nightsDone: -1,                // last day index whose night Kelvin already worked
-    pendingBill: [],               // lines for the next morning's bill
-    dayLoss: 0,                    // coin value Kelvin took since the last bill (refunded with interest)
+    plots: {},                     // index 0..8 -> {crop, plantedAt, growMs, sealed}
+    planted: 0,                    // seeds planted so far (sets the early grow times)
+    harvests: 0,
+    book: {},                      // "crop:form" -> count (form = normal | gold | rainbow | giant)
     billNo: 0,
+    sealedGiven: false, sealedReady: false,
+    lastSeen: now,
     seen: {},                      // tutorial steps shown
-    stats: { harvested: 0, sold: 0, fines: 0, earned: 0 },
-    goalDone: false,
+    stats: { disputesWon: 0, disputesLost: 0, paid: 0 },
   };
 }
 
 function migrate(s) {
-  if (s.v < 2) {                   // v0.1 -> v0.2: new one-screen farm layout; keep money, seeds and basket
+  if (s.v < 3) {                   // v0.3 -> v0.4: new monster patch; keep coins
     const f = fresh(Date.now());
-    s = { ...f, coins: s.coins, seeds: s.seeds, basket: (s.basket || []).filter(c => CFG.crops[c.crop]), seen: {}, stats: { ...f.stats, ...(s.stats || {}) } };
+    s = { ...f, coins: Math.max(f.coins, s.coins | 0) };
   }
   return s;
 }

@@ -429,6 +429,8 @@ class Farm extends Phaser.Scene {
   S = load(Date.now());
   if (q.has('reset')) { wipe(); S = load(Date.now()); }
   const el = document.getElementById('game');
+  // a hidden page or iframe has no size yet; WebGL can't start at 0 x 0, so wait until it's visible
+  while (!el.clientWidth || !el.clientHeight) await new Promise(r => setTimeout(r, 200));
   UI.initUI(document.body);
   new Phaser.Game({
     type: Phaser.AUTO, parent: el, backgroundColor: '#2a1f33', pixelArt: true, roundPixels: true,

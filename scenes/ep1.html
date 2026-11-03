@@ -7,13 +7,14 @@
 <!-- Episode 1 scene: the farm, Kelvin from Accounting, his first bill and three dry seeds.
      Opening frame = the bill over Kelvin's face (team rule: the bill is the hook).
      Beats are cued by the Reel composer with postMessage({beat}); open ?play=1 to watch them on a loop.
-     ?pour=water|cola|lava shows the vote option thumbnails (seeds being watered with that liquid). -->
+     ?pour=water|cola|lava shows the vote option thumbnails (seeds being watered with that liquid).
+     ?live=1 is the playable Day 1 page on the website: tap Kelvin for his bill, tap the seeds. -->
 <style>
   @font-face{font-family:"Press Start 2P";src:url(../assets/press-start-2p.woff2) format("woff2");font-display:block}
   html,body{margin:0;height:100%;background:#2a1f33;overflow:hidden}
   #wrap{position:absolute;inset:0}
   canvas{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
-  #bill{position:absolute;left:50%;top:42%;width:62%;opacity:0;transform:translate(-50%,40%) rotate(-3deg);transition:transform .45s cubic-bezier(.2,1.4,.4,1),opacity .2s;
+  #bill{position:absolute;left:50%;top:42%;width:62%;opacity:0;pointer-events:none;transform:translate(-50%,40%) rotate(-3deg);transition:transform .45s cubic-bezier(.2,1.4,.4,1),opacity .2s;
         background:#f6f3e8;color:#2b1d3a;font:8px/1.9 "Press Start 2P",monospace;padding:14px 12px 18px;box-shadow:0 0 0 3px #2b1d3a;
         clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),94% 100%,88% calc(100% - 6px),82% 100%,76% calc(100% - 6px),70% 100%,64% calc(100% - 6px),58% 100%,52% calc(100% - 6px),46% 100%,40% calc(100% - 6px),34% 100%,28% calc(100% - 6px),22% 100%,16% calc(100% - 6px),10% 100%,4% calc(100% - 6px),0 100%)}
   #bill.on{opacity:1;transform:translate(-50%,-50%) rotate(-3deg)}
@@ -33,6 +34,14 @@
   #hud span{background:#2b1d3aD9;border:2px solid #2b1d3a;border-radius:6px;padding:6px 8px;box-shadow:inset 0 -2px #0004}
   #hud i{font-style:normal;color:#ffcf5c}
   #hud.off{opacity:0}
+  #tip{position:absolute;transform:translate(-50%,-100%);font:8px "Press Start 2P",monospace;color:#2b1d3a;background:#fff;border:2px solid #2b1d3a;border-radius:6px;padding:6px 8px;white-space:nowrap;pointer-events:none;animation:bob 1s ease-in-out infinite;display:none}
+  #tip::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-5px;border:5px solid transparent;border-top-color:#2b1d3a}
+  @keyframes bob{50%{margin-top:-4px}}
+  #toast{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);font:8px/1.6 "Press Start 2P",monospace;color:#fff;background:#2b1d3aE6;border-radius:8px;padding:8px 10px;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;width:max-content;max-width:88%}
+  #toast.on{opacity:1}
+  body.live canvas{cursor:pointer}
+  body.live #bill{width:86%;font-size:7px;padding:12px 10px 16px}
+  body.live #bill h1{font-size:10px}
 </style>
 </head>
 <body>
@@ -49,6 +58,8 @@
     <div id="stamp">UNPAID</div>
   </div>
   <div id="hud" class="off"><span>DAY <i>1</i></span><span><i>●</i> 0</span><span>SEEDS <i>3</i></span></div>
+  <div id="tip">TAP ME</div>
+  <div id="toast"></div>
   <div id="pet" style="position:absolute;left:0;top:0;width:1px;height:1px"></div>
 </div>
 <script>
@@ -57,6 +68,7 @@ const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 const q = new URLSearchParams(location.search);
 const POUR = q.get('pour');                  // thumbnail mode: water | cola | lava
+const LIVE = !!q.get('live');                // playable page on the website
 
 // ---------- sprites ----------
 const kelvin = new Image(); kelvin.src = '../assets/sprites/kelvin.png';
@@ -161,11 +173,64 @@ const beats = {
 const hud = document.getElementById('hud');
 if (POUR) hud.remove();
 function resetBill() { bill.querySelectorAll('.ln').forEach(l => l.classList.remove('on')); document.getElementById('stamp').classList.remove('on'); }
-if (!POUR) beats.open();                    // the scene starts on its opening frame
+if (!POUR && !LIVE) beats.open();           // the Reel starts on its opening frame
 addEventListener('message', e => { const b = e.data && beats[e.data.beat]; if (b) b(); });
 if (q.get('play')) {                         // preview loop for checking the scene by hand
   const run = () => { beats.open(); setTimeout(beats.zoomout, 2800); setTimeout(beats.seeds, 5600); };
   run(); setInterval(run, 9000);
+}
+
+// ---------- live mode (website): tap Kelvin for his bill, tap the seeds ----------
+let audio = null;
+function beepClick() {                       // Kelvin's calculator "beep-click", synthesized
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = audio.currentTime;
+    for (const at of [0, 0.11]) {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'square'; o.frequency.value = 1760; g.gain.setValueAtTime(0.08, t0 + at); g.gain.exponentialRampToValueAtTime(0.001, t0 + at + 0.06);
+      o.connect(g).connect(audio.destination); o.start(t0 + at); o.stop(t0 + at + 0.07);
+    }
+    const n = audio.createBuffer(1, 1200, audio.sampleRate), d = n.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / 100);
+    const src = audio.createBufferSource(), g = audio.createGain(); g.gain.value = 0.25;
+    src.buffer = n; src.connect(g).connect(audio.destination); src.start(t0 + 0.22);
+  } catch (e) {}
+}
+let toastTimer = 0;
+function toast(html) {
+  const t = document.getElementById('toast'); t.innerHTML = html; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
+}
+function toWorld(ev) {
+  const r = cv.getBoundingClientRect();
+  const px = (ev.clientX - r.left) / r.width * W, py = (ev.clientY - r.top) / r.height * H;
+  return [(px - (W / 2 - cam.cx * cam.z)) / cam.z, (py - (H / 2 - cam.cy * cam.z)) / cam.z];
+}
+function placeTip() {                        // "TAP ME" bubble above Kelvin's head
+  const tip = document.getElementById('tip'), r = cv.getBoundingClientRect();
+  const sx = (W / 2 - cam.cx * cam.z + (KEL.x + 12) * cam.z) / W * r.width;
+  const sy = (H / 2 - cam.cy * cam.z + (KEL.y - 4) * cam.z) / H * r.height;
+  tip.style.left = sx + 'px'; tip.style.top = sy + 'px';
+}
+if (LIVE) {
+  document.body.classList.add('live');
+  cam = { ...CAM.farm }; camFrom = camTo = cam; hud.className = '';
+  const tip = document.getElementById('tip'); tip.style.display = 'block'; placeTip();
+  addEventListener('resize', placeTip);
+  cv.addEventListener('pointerdown', ev => {
+    if (bill.className === 'on') { bill.className = 'off'; smirk = false; return; }
+    const [x, y] = toWorld(ev);
+    if (x > KEL.x - 4 && x < KEL.x + 28 && y > KEL.y - 6 && y < KEL.y + 28) {
+      tip.style.display = 'none'; smirk = true; resetBill(); bill.className = 'on';
+      bill.querySelectorAll('.ln').forEach(l => l.classList.add('on'));
+      setTimeout(() => { document.getElementById('stamp').classList.add('on'); beepClick(); }, 350);
+    } else if (x > SOIL.x - 4 && x < SOIL.x + SOIL.w + 4 && y > SOIL.y - 6 && y < SOIL.y + SOIL.h + 4) {
+      toast('These seeds are waiting for your vote<br>💧 water · 🥤 cola · 🌋 lava');
+    } else {
+      toast('Kelvin is watching you.');
+    }
+  });
 }
 
 // ---------- thumbnail mode: pouring water / cola / lava onto the seeds ----------

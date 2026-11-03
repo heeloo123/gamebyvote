@@ -2,39 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Game By Vote · Day 0</title>
-<meta name="description" content="A game built by AI, where Instagram followers vote on what it becomes.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game By Vote · Day 1</title>
+<meta name="description" content="One game, built in public by Mochi (an AI developer). Every vote in the comments changes it for real.">
+<!-- The live game. One build only: each vote changes this game (no style buttons, no versions).
+     Update per episode: VOTE below, the "what your votes changed" list, the DAY label and the scene. -->
 <style>
+  @font-face{font-family:"Press Start 2P";src:url(assets/press-start-2p.woff2) format("woff2");font-display:swap}
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#1f1630;color:#fff;font-family:"Trebuchet MS",system-ui,sans-serif;overflow:hidden}
-  body{display:flex;flex-direction:column}
-  #game{flex:1;width:100%;border:0;display:block}
-  nav{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#1f1630;align-items:center}
-  nav span{font-size:12px;opacity:.8;margin-right:auto;line-height:1.3}
-  nav b{display:block;font-size:13px;opacity:1}
-  button{font:inherit;font-weight:bold;font-size:14px;border:0;border-radius:12px;padding:10px 12px;background:#3a2e4d;color:#fff;cursor:pointer}
-  button[aria-pressed="true"]{background:#ffcf5c;color:#1f1630}
+  html,body{margin:0;background:#1f1630;color:#fff;font-family:"Trebuchet MS",system-ui,sans-serif}
+  body{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding-bottom:env(safe-area-inset-bottom)}
+  .px{font-family:"Press Start 2P",monospace}
+  #vote{width:100%;max-width:480px;background:#2a1f3d;border-bottom:3px solid #ffcf5c;padding:12px 14px 14px;text-align:center}
+  #vote .q{font-weight:bold;font-size:16px;line-height:1.3}
+  #vote .opts{margin:8px 0 6px;font-size:14px;color:#e8defa}
+  #vote .when{font-size:10px;color:#ffcf5c;margin:8px 0 10px;line-height:1.6}
+  #vote .btns{display:flex;gap:8px;justify-content:center}
+  #vote a{flex:1;max-width:190px;text-decoration:none;font-weight:bold;font-size:14px;color:#1f1630;background:#ffcf5c;border-radius:12px;padding:10px 8px}
+  #vote a.alt{background:#3a2e4d;color:#fff}
+  #day{margin:12px 0 6px;font-size:9px;color:#c9b8e8}
+  #game{width:min(100vw,480px,calc((100vh - 230px) * 9 / 16));min-width:260px;aspect-ratio:9/16;border:0;display:block;border-radius:10px;background:#2a1f33}
+  #changes{width:100%;max-width:480px;padding:18px 14px 28px}
+  #changes h2{font-size:11px;margin:0 0 12px;color:#ffcf5c;line-height:1.5}
+  .log{display:flex;gap:10px;align-items:flex-start;background:#2a1f3d;border-radius:12px;padding:10px;margin-bottom:8px;font-size:14px;line-height:1.45}
+  .log b{display:block;font-size:9px;color:#c9b8e8;margin-bottom:4px}
+  .log img{width:56px;height:56px;image-rendering:pixelated;flex:none}
+  footer{font-size:12px;color:#9d8fb8;text-align:center;padding:0 14px 20px;line-height:1.5}
 </style>
 </head>
 <body>
-<iframe id="game" title="Mochi" src="styles/pixel.html"></iframe>
-<nav>
-  <span><b>Day 0 · pick Mochi's look</b>Vote on Instagram @gamebyvote</span>
-  <button data-s="pixel" aria-pressed="true">A Pixel</button>
-  <button data-s="cartoon" aria-pressed="false">B Cartoon</button>
-  <button data-s="clay" aria-pressed="false">C Clay</button>
-</nav>
+<section id="vote">
+  <div class="q">🗳️ What do I water the first seeds with?</div>
+  <div class="opts">A 💧 Water · B 🥤 Cola · C 🌋 Lava</div>
+  <div class="when px" id="when"></div>
+  <div class="btns">
+    <a id="tt" href="https://www.tiktok.com/@okaybutwhy84" target="_blank" rel="noopener">Vote on TikTok</a>
+    <a class="alt" href="https://www.instagram.com/gamebyvote/" target="_blank" rel="noopener">Vote on Instagram</a>
+  </div>
+</section>
+
+<div id="day" class="px">DAY 1 · UPDATED 3 NOV 2026</div>
+<iframe id="game" title="Game By Vote: the farm" src="scenes/ep1.html?live=1"></iframe>
+
+<section id="changes">
+  <h2 class="px">WHAT YOUR VOTES CHANGED</h2>
+  <div class="log">
+    <img src="assets/sprites/mochi.png" alt="Mochi, the developer, at his desk">
+    <div><b class="px">EPISODE 1 · VOTE OPEN</b>Kelvin from Accounting moved onto the farm and sent a bill. You decide what the first seeds get watered with. Whatever wins goes into this game for real, and changes Kelvin for good.</div>
+  </div>
+</section>
+
+<footer>One game, built in public by Mochi, an AI developer.<br>Votes happen in the comments. Comments only, top comment wins.</footer>
+
 <script>
-  const game = document.getElementById('game'), btns = document.querySelectorAll('nav button');
-  function pick(s) {
-    game.src = 'styles/' + s + '.html';
-    btns.forEach(b => b.setAttribute('aria-pressed', b.dataset.s === s));
-    try { history.replaceState(null, '', '#' + s); } catch (e) {}
+  // Current vote. Times are Singapore time (UTC+8).
+  const VOTE = { opens: '2026-11-07T11:00:00+08:00', closes: '2026-11-08T22:00:00+08:00' };
+  const fmt = ms => {
+    const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
+    return (d ? d + 'D ' : '') + (d || h ? h + 'H ' : '') + mm + 'M';
+  };
+  function tick() {
+    const now = Date.now(), o = Date.parse(VOTE.opens), c = Date.parse(VOTE.closes), el = document.getElementById('when');
+    if (now < o) el.innerHTML = 'EPISODE 1 DROPS SAT 7 NOV, 11:00 SGT<br>IN ' + fmt(o - now);
+    else if (now < c) el.innerHTML = 'VOTE CLOSES SUN 8 NOV, 22:00 SGT<br>' + fmt(c - now) + ' LEFT';
+    else el.innerHTML = 'VOTES CLOSED. COUNTING…<br>THE WINNER ARRIVES IN THE NEXT UPDATE';
   }
-  btns.forEach(b => b.addEventListener('click', () => pick(b.dataset.s)));
-  const start = location.hash.slice(1);
-  if (['pixel', 'cartoon', 'clay'].includes(start)) pick(start);
+  tick(); setInterval(tick, 30000);
 </script>
 </body>
 </html>

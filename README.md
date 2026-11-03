@@ -12,8 +12,12 @@ A monster farm. Kelvin from Accounting has moved onto your farm and sent you a b
 
 - `scenes/ep1.html?live=1`: the playable Day 1 farm (tap Kelvin for his bill, tap the seeds). Without `?live`, the same scene plays the Episode 1 Reel beats; `?pour=water|cola|lava` draws the vote cards.
 
+## The farm game (preview)
+`game/` is the real game (Phaser 3 + Vite): one farm bigger than the screen, the camera follows the farmer; plant, harvest mystery monster crops (rarity + mutations), sell, buy seeds; at night Kelvin acts once and leaves a bill in the morning. Game data lives in `game/src/data/config.json`; saves are versioned in localStorage. Build with `cd game && npm install && npm run build`, which writes `play/` (committed, served by GitHub Pages). Add `?debug=1` for fast days and crops, `?reset=1` to wipe the save.
+
 ## Repo layout
-- `scenes/`: game scenes
+- `game/`: game source; `play/`: its build
+- `scenes/`: scripted scenes for the Reels
 - `assets/`: Press Start 2P font (SIL Open Font License) and sprites (`sprites/kelvin.png`, `sprites/mochi.png`)
 - `video/`: the Reel pipeline, see `video/README.md`
 - `reels/`: finished Reels and Story graphics, hosted here so the scheduler can fetch them

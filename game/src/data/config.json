@@ -1,0 +1,119 @@
+{
+  "_doc": "All tunable game data. Times are real seconds. Change balance here, not in code.",
+  "dayLengthSec": 600,
+  "nightStartsAt": 0.72,
+  "duskStartsAt": 0.62,
+  "startCoins": 20,
+  "startSeeds": 4,
+  "seedPrice": 5,
+  "growSec": 90,
+  "rarity": [
+    {
+      "id": "common",
+      "name": "Common",
+      "chance": 70,
+      "value": 8,
+      "crop": "sproutling",
+      "color": "#9ff0a0"
+    },
+    {
+      "id": "uncommon",
+      "name": "Uncommon",
+      "chance": 22,
+      "value": 15,
+      "crop": "grumbean",
+      "color": "#8ad4ff"
+    },
+    {
+      "id": "rare",
+      "name": "Rare",
+      "chance": 7,
+      "value": 40,
+      "crop": "puffcap",
+      "color": "#ff9ee0"
+    },
+    {
+      "id": "epic",
+      "name": "Epic",
+      "chance": 1,
+      "value": 150,
+      "crop": "mopkin",
+      "color": "#ffcf5c"
+    }
+  ],
+  "mutations": [
+    {
+      "id": "gold",
+      "name": "Gold",
+      "chance": 2,
+      "mult": 5
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "chance": 0.5,
+      "mult": 15
+    },
+    {
+      "id": "giant",
+      "name": "Giant",
+      "chance": 3,
+      "mult": 2
+    }
+  ],
+  "crops": {
+    "sproutling": "Sproutling",
+    "grumbean": "Grumbean",
+    "puffcap": "Puffcap",
+    "mopkin": "Mopkin"
+  },
+  "kelvin": {
+    "_doc": "One action per night. Losses are capped (1 plot or 10% of the basket) and he always leaves something worth more.",
+    "maxBillLines": 4,
+    "acts": [
+      {
+        "id": "eat",
+        "line": "Ate {n} crop from your basket",
+        "fee": "Snack fee"
+      },
+      {
+        "id": "audit",
+        "line": "Audited your plot. Reset 1 timer",
+        "fee": "Audit fee"
+      },
+      {
+        "id": "tax",
+        "line": "Charged a looking-at-me tax",
+        "fee": "{c} coins"
+      }
+    ],
+    "gifts": [
+      {
+        "id": "seeds",
+        "line": "Left {n} seeds (they look cursed)"
+      },
+      {
+        "id": "coins",
+        "line": "Overpaid you by mistake: +{c}"
+      }
+    ]
+  },
+  "vote": {
+    "episode": 1,
+    "question": "What do I water the first seeds with?",
+    "options": [
+      "water",
+      "cola",
+      "lava"
+    ],
+    "closes": "2026-11-08T22:00:00+08:00",
+    "winner": null
+  },
+  "world": {
+    "_doc": "Stardew-style: the farm is bigger than the screen and the camera follows the farmer. Tiles are 16 px; the view is ~7.5 tiles wide on a phone.",
+    "tilesW": 30,
+    "tilesH": 40,
+    "viewW": 120,
+    "viewH": 213
+  }
+}

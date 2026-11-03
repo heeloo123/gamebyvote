@@ -1,0 +1,197 @@
+{
+  "title": "Episode 1: a monster moved onto my farm (Kelvin from Accounting)",
+  "durationMs": 20000,
+  "storyTag": "Episode 1 · @gamebyvote",
+  "screens": [
+    {
+      "id": "farm",
+      "src": "../scenes/ep1.html"
+    },
+    {
+      "id": "water",
+      "src": "../scenes/ep1.html?pour=water"
+    },
+    {
+      "id": "cola",
+      "src": "../scenes/ep1.html?pour=cola"
+    },
+    {
+      "id": "lava",
+      "src": "../scenes/ep1.html?pour=lava"
+    }
+  ],
+  "startScreen": "farm",
+  "captions": [
+    {
+      "id": "c1",
+      "html": "A monster sent me<br>a bill 🧾",
+      "top": 34
+    },
+    {
+      "id": "c2",
+      "html": "His name is Kelvin.<br>From Accounting.",
+      "top": 96
+    },
+    {
+      "id": "c2k",
+      "html": "Kelvin: “<i>Senior</i> Accounting.”",
+      "top": 96
+    },
+    {
+      "id": "c3",
+      "html": "First seeds. What do<br>I water them with?",
+      "top": 96,
+      "yellow": true
+    }
+  ],
+  "outro": {
+    "big": "A, B or C?",
+    "sub": "Comment one letter. The winner goes into the game for real.",
+    "options": [
+      {
+        "letter": "A",
+        "label": "Water",
+        "screen": "water",
+        "reward": "💧 Fast crops",
+        "cost": "😭 Kelvin floods a tile"
+      },
+      {
+        "letter": "B",
+        "label": "Cola",
+        "screen": "cola",
+        "reward": "🥤 Double harvests",
+        "cost": "🧾 Double bills"
+      },
+      {
+        "letter": "C",
+        "label": "Lava",
+        "screen": "lava",
+        "reward": "🔥 Rare monsters ×2",
+        "cost": "🔥 Burns a tile"
+      }
+    ],
+    "next": "⏰ Votes close Sun 8 Nov, 10pm SGT"
+  },
+  "timeline": [
+    [
+      0,
+      "show",
+      "c1"
+    ],
+    [
+      2800,
+      "hide",
+      "c1"
+    ],
+    [
+      2800,
+      "cue",
+      "farm:zoomout"
+    ],
+    [
+      3000,
+      "show",
+      "c2"
+    ],
+    [
+      5200,
+      "hide",
+      "c2"
+    ],
+    [
+      5250,
+      "show",
+      "c2k"
+    ],
+    [
+      7000,
+      "hide",
+      "c2k"
+    ],
+    [
+      7000,
+      "cue",
+      "farm:seeds"
+    ],
+    [
+      7200,
+      "show",
+      "c3"
+    ],
+    [
+      9600,
+      "hide",
+      "c3"
+    ],
+    [
+      9700,
+      "show",
+      "outro"
+    ],
+    [
+      10000,
+      "option",
+      0
+    ],
+    [
+      11200,
+      "option",
+      1
+    ],
+    [
+      12400,
+      "option",
+      2
+    ],
+    [
+      13600,
+      "option",
+      -1
+    ]
+  ],
+  "taps": [],
+  "voice": [
+    {
+      "t": 0.15,
+      "text": "A monster just sent me a bill."
+    },
+    {
+      "t": 3.0,
+      "text": "His name is Kelvin. From Accounting.",
+      "speed": 1.15
+    },
+    {
+      "t": 5.35,
+      "text": "Senior Accounting.",
+      "voice": "bm_george",
+      "speed": 0.95
+    },
+    {
+      "t": 7.25,
+      "text": "First seeds. What do I water them with?",
+      "speed": 1.1
+    },
+    {
+      "t": 10.0,
+      "text": "Water."
+    },
+    {
+      "t": 11.2,
+      "text": "Cola."
+    },
+    {
+      "t": 12.4,
+      "text": "Or... lava."
+    },
+    {
+      "t": 13.9,
+      "text": "Comment A, B, or C. I build whatever wins."
+    }
+  ],
+  "sfx": [
+    {
+      "t": 6.95,
+      "sound": "beepclick"
+    }
+  ]
+}

@@ -12,13 +12,16 @@
         background:linear-gradient(#2a1f3d,#1f1630);color:#fff;font-family:Fredoka,"Noto Color Emoji",sans-serif;text-align:center}
   /* Instagram covers roughly the top 85px and bottom 110px (in this 360x640 layout) with its own UI */
   .tag{position:absolute;top:96px;left:50%;transform:translateX(-50%);background:#ffcf5c;color:#1f1630;border-radius:999px;padding:5px 14px;font-weight:700;font-size:14px;white-space:nowrap}
-  .big{position:absolute;top:132px;left:20px;right:20px;font-size:30px;font-weight:700;line-height:1.15}
-  .opts{position:absolute;top:214px;left:0;right:0;display:flex;gap:10px;justify-content:center}
-  .opt{width:86px}
-  .thumb{position:relative;width:86px;height:153px;border-radius:14px;overflow:hidden;border:3px solid #fff}
-  .thumb iframe{position:absolute;left:0;top:0;width:360px;height:640px;border:0;transform:scale(.2389);transform-origin:0 0}
+  .big{position:absolute;top:124px;left:20px;right:20px;font-size:30px;font-weight:700;line-height:1.15}
+  .opts{position:absolute;top:176px;left:0;right:0;display:flex;gap:10px;justify-content:center}
+  .opt{width:96px}
+  .thumb{position:relative;width:79px;height:140px;margin:0 auto;border-radius:14px;overflow:hidden;border:3px solid #fff}
+  .thumb iframe{position:absolute;left:0;top:0;width:360px;height:640px;border:0;transform:scale(.2194);transform-origin:0 0}
   .opt b{display:block;margin-top:4px;font-size:20px}
   .opt small{display:block;font-size:13px;font-weight:600;color:#c9b8e8}
+  .opt em{display:block;margin-top:4px;font-style:normal;font-size:11px;font-weight:700;line-height:1.2;color:#fff}
+  .opt em .rw{display:block;color:#9ff0a0}
+  .opt em .ct{display:block;margin-top:2px;color:#ff9a8a}
   .slot{position:absolute;top:430px;left:0;right:0;font-size:15px;font-weight:600;color:#ffcf5c}
   .foot{position:absolute;top:450px;left:0;right:0;font-size:12px;font-weight:600;color:#c9b8e8}
   /* 470-528: left empty for the poll sticker */
@@ -38,6 +41,7 @@
     const src = Object.fromEntries(ep.screens.map(s => [s.id, s.src]));
     document.getElementById('tag').textContent = ep.storyTag || 'New episode · @gamebyvote';
     document.getElementById('big').innerHTML = ep.outro.big;
+    if (ep.outro.next) document.querySelector('.foot').textContent += ' · ' + ep.outro.next;
     for (const o of ep.outro.options) {
       const card = document.createElement('div'); card.className = 'opt';
       const thumb = document.createElement('div'); thumb.className = 'thumb';
@@ -45,7 +49,10 @@
       else if (o.image) { thumb.innerHTML = `<img src="${o.image}" style="width:100%;height:100%;object-fit:cover">`; }
       const b = document.createElement('b'); b.textContent = o.letter;
       const s = document.createElement('small'); s.textContent = o.label;
-      card.append(thumb, b, s); document.getElementById('opts').append(card);
+      card.append(thumb, b, s);
+      if (o.result) { const e = document.createElement('em'); e.innerHTML = o.result; card.append(e); }
+      if (o.reward) { const e = document.createElement('em'); e.innerHTML = `<span class="rw">${o.reward}</span><span class="ct">${o.cost}</span>`; card.append(e); }
+      document.getElementById('opts').append(card);
     }
     return true;
   });

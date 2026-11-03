@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Game By Vote · Episode 1 · Kelvin moves in</title>
+<!-- Episode 1 scene: the farm, Kelvin from Accounting, his first bill and three dry seeds.
+     Opening frame = the bill over Kelvin's face (team rule: the bill is the hook).
+     Beats are cued by the Reel composer with postMessage({beat}); open ?play=1 to watch them on a loop.
+     ?pour=water|cola|lava shows the vote option thumbnails (seeds being watered with that liquid). -->
+<style>
+  @font-face{font-family:"Press Start 2P";src:url(../assets/press-start-2p.woff2) format("woff2");font-display:block}
+  html,body{margin:0;height:100%;background:#2a1f33;overflow:hidden}
+  #wrap{position:absolute;inset:0}
+  canvas{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+  #bill{position:absolute;left:50%;top:42%;width:62%;opacity:0;transform:translate(-50%,40%) rotate(-3deg);transition:transform .45s cubic-bezier(.2,1.4,.4,1),opacity .2s;
+        background:#f6f3e8;color:#2b1d3a;font:8px/1.9 "Press Start 2P",monospace;padding:14px 12px 18px;box-shadow:0 0 0 3px #2b1d3a;
+        clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),94% 100%,88% calc(100% - 6px),82% 100%,76% calc(100% - 6px),70% 100%,64% calc(100% - 6px),58% 100%,52% calc(100% - 6px),46% 100%,40% calc(100% - 6px),34% 100%,28% calc(100% - 6px),22% 100%,16% calc(100% - 6px),10% 100%,4% calc(100% - 6px),0 100%)}
+  #bill.on{opacity:1;transform:translate(-50%,-50%) rotate(-3deg)}
+  #bill.open{opacity:1;top:33%;width:58%;transform:translate(-50%,-50%) rotate(-3deg);transition:none}
+  #bill.open .ln{opacity:1}
+  #bill.off{opacity:0;transform:translate(-50%,-220%) rotate(10deg);transition:transform .4s ease-in,opacity .4s ease-in}
+  #bill h1{font-size:11px;margin:0 0 6px;text-align:center;letter-spacing:1px}
+  #bill .who{font-size:7px;color:#6b5a7a;text-align:center;margin-bottom:8px}
+  #bill .ln{display:flex;justify-content:space-between;gap:6px;opacity:0;transition:opacity .15s}
+  #bill .ln.on{opacity:1}
+  #bill .ln b{font-weight:normal;white-space:nowrap}
+  #bill hr{border:0;border-top:2px dashed #b8b2a0;margin:6px 0}
+  #bill .tot{color:#d9443a;margin-bottom:22px}
+  #stamp{position:absolute;left:10px;bottom:-4px;color:#d9443a;border:3px solid #d9443a;padding:4px 6px;font-size:10px;transform:rotate(-14deg) scale(2.4);opacity:0;transition:all .18s ease-in}
+  #stamp.on{opacity:.9;transform:rotate(-14deg) scale(1)}
+  #hud{position:absolute;left:8px;right:8px;bottom:10px;display:flex;justify-content:space-between;font:9px "Press Start 2P",monospace;color:#fff;transition:opacity .3s}
+  #hud span{background:#2b1d3aD9;border:2px solid #2b1d3a;border-radius:6px;padding:6px 8px;box-shadow:inset 0 -2px #0004}
+  #hud i{font-style:normal;color:#ffcf5c}
+  #hud.off{opacity:0}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="180" height="320"></canvas>
+  <div id="bill">
+    <h1>INVOICE #001</h1>
+    <div class="who">FROM: KELVIN, ACCOUNTING</div>
+    <div class="ln"><span>Rent for MY farm</span><b>3 carrots</b></div>
+    <div class="ln"><span>You looked at me</span><b>1 seed</b></div>
+    <div class="ln"><span>Emotional damage</span><b>2 eggs</b></div>
+    <hr>
+    <div class="ln tot"><span>TOTAL</span><b>YOUR FARM</b></div>
+    <div id="stamp">UNPAID</div>
+  </div>
+  <div id="hud" class="off"><span>DAY <i>1</i></span><span><i>●</i> 0</span><span>SEEDS <i>3</i></span></div>
+  <div id="pet" style="position:absolute;left:0;top:0;width:1px;height:1px"></div>
+</div>
+<script>
+const W = 180, H = 320;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const q = new URLSearchParams(location.search);
+const POUR = q.get('pour');                  // thumbnail mode: water | cola | lava
+
+// ---------- sprites ----------
+const kelvin = new Image(); kelvin.src = '../assets/sprites/kelvin.png';
+let kelvinSmirk = null;                      // same sprite, mouth corner lifted and a crooked tooth (drawn in code)
+let kelvinElem = null;                       // ?pour=…: Kelvin recoloured to that element (body ramp swap only)
+const RAMPS = {
+  water: ['#a8e0ff', '#4aa8e8', '#2a6cb0'],
+  cola:  ['#d09a6a', '#8a4e2a', '#5a2e14'],
+  lava:  ['#ffd060', '#ff7a2a', '#c43a1a'],
+};
+kelvin.onload = () => {
+  const c = document.createElement('canvas'); c.width = c.height = 24;
+  const x = c.getContext('2d'); x.drawImage(kelvin, 0, 0);
+  const body = x.getImageData(4, 13, 1, 1).data, ink = x.getImageData(7, 13, 1, 1).data;
+  const px = (X, Y, col) => { x.fillStyle = col; x.fillRect(X, Y, 1, 1); };
+  px(9, 13, `rgb(${body[0]},${body[1]},${body[2]})`);
+  px(9, 12, `rgb(${ink[0]},${ink[1]},${ink[2]})`);
+  px(8, 14, '#ffffff');
+  kelvinSmirk = c;
+  if (POUR) {
+    const e = document.createElement('canvas'); e.width = e.height = 24;
+    const x2 = e.getContext('2d'); x2.drawImage(c, 0, 0);
+    const d = x2.getImageData(0, 0, 24, 24), r = RAMPS[POUR];
+    const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    for (let i = 0; i < d.data.length; i += 4) {
+      const [R, G, B, A] = d.data.slice(i, i + 4);
+      if (!A || B - G < 40 || R < G) continue;        // only the purple body (belly is too pale to match)
+      const lum = R + G + B, to = hex(lum > 560 ? r[0] : lum > 420 ? r[1] : r[2]);
+      d.data.set(to, i);
+    }
+    x2.putImageData(d, 0, 0); kelvinElem = e;
+  }
+};
+
+// ---------- the farm (world space, 180 x 320) ----------
+const SOIL = { x: 50, y: 196, w: 48, h: 16 };
+const SEEDS = [[58, 203], [72, 205], [86, 203]];
+const KEL = { x: 108, y: 186 };              // top-left of the 24 x 24 sprite
+const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const TUFTS = Array.from({ length: 90 }, () => [Math.floor(rnd() * W), 60 + Math.floor(rnd() * (H - 70))]);
+const FLOWERS = Array.from({ length: 22 }, () => [Math.floor(rnd() * W), 70 + Math.floor(rnd() * (H - 90)), rnd() < .5 ? '#ffcf5c' : '#ff9eb5']);
+
+function drawWorld(t, wet) {
+  for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) {
+    ctx.fillStyle = ((x + y) / 16) % 2 ? '#54923a' : '#5a9a3c'; ctx.fillRect(x, y, 16, 16);
+  }
+  ctx.fillStyle = '#4a8a34';
+  for (const [x, y] of TUFTS) { ctx.fillRect(x, y, 1, 2); ctx.fillRect(x + 2, y - 1, 1, 3); }
+  for (const [x, y, c] of FLOWERS) { ctx.fillStyle = c; ctx.fillRect(x, y, 2, 2); ctx.fillStyle = '#fff3b0'; ctx.fillRect(x, y, 1, 1); }
+  // back fence
+  ctx.fillStyle = '#3e2a1e'; ctx.fillRect(0, 50, W, 3);
+  ctx.fillStyle = '#9a6a3e'; ctx.fillRect(0, 44, W, 3); ctx.fillRect(0, 50, W, 2);
+  for (let x = 4; x < W; x += 14) { ctx.fillStyle = '#3e2a1e'; ctx.fillRect(x - 1, 38, 6, 20); ctx.fillStyle = '#b07a46'; ctx.fillRect(x, 39, 4, 18); }
+  // little barn, top left (with a ground shadow)
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(14, 104, 46, 4);
+  ctx.fillStyle = '#2b1d3a'; ctx.fillRect(10, 64, 46, 40);
+  ctx.fillStyle = '#c94a3a'; ctx.fillRect(11, 76, 44, 27);
+  ctx.fillStyle = '#7a2e2a'; ctx.fillRect(11, 65, 44, 11); ctx.fillStyle = '#5e2422'; for (let x = 13; x < 55; x += 4) ctx.fillRect(x, 65, 1, 11);
+  ctx.fillStyle = '#e8e0d0'; ctx.fillRect(26, 84, 14, 19); ctx.fillStyle = '#2b1d3a'; ctx.fillRect(32, 84, 2, 19); ctx.fillRect(26, 92, 14, 1);
+  // soil plot
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(SOIL.x + 1, SOIL.y + SOIL.h + 1, SOIL.w, 2);
+  ctx.fillStyle = '#2b1d3a'; ctx.fillRect(SOIL.x - 1, SOIL.y - 1, SOIL.w + 2, SOIL.h + 2);
+  ctx.fillStyle = wet || '#7a5536'; ctx.fillRect(SOIL.x, SOIL.y, SOIL.w, SOIL.h);
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; for (let y = SOIL.y + 3; y < SOIL.y + SOIL.h; y += 5) ctx.fillRect(SOIL.x + 1, y, SOIL.w - 2, 1);
+  for (const [x, y] of SEEDS) {                 // seed mounds, readable at full-farm zoom
+    ctx.fillStyle = '#5a3e2a'; ctx.fillRect(x - 3, y - 1, 8, 4); ctx.fillStyle = '#2b1d3a'; ctx.fillRect(x - 1, y - 2, 4, 4);
+    ctx.fillStyle = '#f0d9a0'; ctx.fillRect(x, y - 1, 2, 2); ctx.fillStyle = '#fff3d0'; ctx.fillRect(x, y - 1, 1, 1);
+  }
+  // sign
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(134, 123, 8, 2);
+  ctx.fillStyle = '#3e2a1e'; ctx.fillRect(136, 110, 2, 14); ctx.fillRect(125, 101, 26, 11);
+  ctx.fillStyle = '#c99a5e'; ctx.fillRect(126, 102, 24, 9);
+  ctx.fillStyle = '#3e2a1e'; ctx.fillRect(129, 105, 18, 1); ctx.fillRect(129, 107, 12, 1);
+}
+
+function drawKelvin(t, smirk) {
+  const bob = Math.floor(t / 450) % 2;       // 1 px idle bob
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(KEL.x + 3, KEL.y + 22, 16, 2);
+  const img = smirk && kelvinSmirk ? kelvinSmirk : kelvin;
+  if (img.width) ctx.drawImage(img, KEL.x, KEL.y + bob);
+}
+
+// ---------- camera ----------
+// zoom 5 on Kelvin: he fills over a third of the screen height in the Reel's first frame, under his bill
+const CAM = { close: { cx: 120, cy: 182, z: 5 }, farm: { cx: 90, cy: 170, z: 1.4 }, seeds: { cx: 91, cy: 202, z: 1.9 } };
+let cam = { ...CAM.close }, camFrom = cam, camTo = cam, camT0 = 0, camDur = 1;
+function moveCam(to, ms) { camFrom = { ...cam }; camTo = CAM[to]; camT0 = performance.now(); camDur = ms; }
+const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+
+// ---------- beats ----------
+let smirk = false;
+const bill = document.getElementById('bill');
+if (POUR) bill.remove();
+const beats = {
+  open() {                                   // frame 0: bill already on screen, Kelvin smirking under it
+    smirk = true; moveCam('close', 1); resetBill(); hud.className = 'off'; bill.className = 'open';
+    setTimeout(() => document.getElementById('stamp').classList.add('on'), 900);
+  },
+  zoomout() { bill.className = 'off'; smirk = false; hud.className = ''; moveCam('farm', 1100); },
+  seeds() { moveCam('seeds', 900); },
+};
+const hud = document.getElementById('hud');
+if (POUR) hud.remove();
+function resetBill() { bill.querySelectorAll('.ln').forEach(l => l.classList.remove('on')); document.getElementById('stamp').classList.remove('on'); }
+if (!POUR) beats.open();                    // the scene starts on its opening frame
+addEventListener('message', e => { const b = e.data && beats[e.data.beat]; if (b) b(); });
+if (q.get('play')) {                         // preview loop for checking the scene by hand
+  const run = () => { beats.open(); setTimeout(beats.zoomout, 2800); setTimeout(beats.seeds, 5600); };
+  run(); setInterval(run, 9000);
+}
+
+// ---------- thumbnail mode: pouring water / cola / lava onto the seeds ----------
+const LIQ = {
+  water: { c: '#5ab4f0', d: '#2e7cc4', wet: '#5a3e2a' },
+  cola:  { c: '#6b3a1e', d: '#3e1e0c', wet: '#4a2e1e', fizz: '#e8d8c0' },
+  lava:  { c: '#ff8a2a', d: '#e04a1a', wet: '#8a3a1e', glow: true },
+};
+function drawPour(t) {
+  const L = LIQ[POUR];
+  const k = (t % 1600) / 1600;
+  if (L.glow) { ctx.fillStyle = `rgba(255,120,40,${.12 + .06 * Math.sin(t / 120)})`; ctx.fillRect(SOIL.x - 10, SOIL.y - 30, SOIL.w + 20, 60); }
+  // can, tipping above the plot
+  ctx.fillStyle = '#2b1d3a'; ctx.fillRect(66, 158, 16, 12); ctx.fillRect(80, 163, 8, 3); ctx.fillRect(69, 154, 10, 2); ctx.fillRect(68, 154, 2, 5); ctx.fillRect(77, 154, 2, 5);
+  ctx.fillStyle = '#8fb4c8'; ctx.fillRect(67, 159, 14, 10); ctx.fillStyle = '#c4dbe6'; ctx.fillRect(68, 160, 4, 2); ctx.fillStyle = '#8fb4c8'; ctx.fillRect(81, 164, 6, 1);
+  // stream and drops
+  for (let y = 166; y < SOIL.y + 6; y += 2) { ctx.fillStyle = (y + Math.floor(t / 60)) % 4 ? L.c : L.d; ctx.fillRect(86 + Math.sin((y + t / 40) / 4), y, 2, 2); }
+  for (let i = 0; i < 6; i++) {
+    const a = (k + i / 6) % 1, dx = (i % 2 ? 1 : -1) * a * 10, dy = -Math.sin(a * Math.PI) * 6;
+    ctx.fillStyle = L.fizz && i % 2 ? L.fizz : L.c; ctx.fillRect(Math.round(87 + dx), Math.round(SOIL.y + 4 + dy), 2, 2);
+  }
+  if (L.fizz) for (let i = 0; i < 5; i++) { ctx.fillStyle = L.fizz; ctx.fillRect(56 + i * 9, SOIL.y + 2 - ((t / 30 + i * 7) % 10), 1, 1); }
+  if (L.glow) for (let i = 0; i < 4; i++) { ctx.fillStyle = '#8a7a8a'; ctx.fillRect(60 + i * 10, SOIL.y - 6 - ((t / 50 + i * 9) % 18), 3, 3); }
+}
+
+function drawElemKelvin(t) {                 // what Kelvin turns into if this option wins
+  if (!kelvinElem) return;
+  const x = 52, y = 218 + (Math.floor(t / 450) % 2) * 2, S = 2;   // drawn at 2x so it reads in the small vote cards
+  if (POUR === 'lava') { ctx.fillStyle = `rgba(255,140,40,${.22 + .1 * Math.sin(t / 100)})`; ctx.fillRect(x - 4, y - 8, 56, 58); }
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x + 6, y + 44, 32, 3);
+  ctx.drawImage(kelvinElem, x, y, 24 * S, 24 * S);
+  if (POUR === 'water') {                    // tears, and a puddle growing under him
+    for (let i = 0; i < 2; i++) { ctx.fillStyle = '#4aa8e8'; ctx.fillRect(x + 12 + i * 12, y + 26 + ((t / 70 + i * 7) % 16), 2, 3); }
+    ctx.fillStyle = '#4aa8e8aa'; ctx.fillRect(x - 2, y + 46, 50, 3);
+  }
+  if (POUR === 'cola') for (let i = 0; i < 6; i++) {   // fizz rising off him
+    ctx.fillStyle = '#f0e0c8'; const b = (t / 45 + i * 9) % 26; ctx.fillRect(x + 4 + i * 7, y + 4 - b, 2, 2);
+  }
+  if (POUR === 'lava') for (let i = 0; i < 5; i++) {   // flames on his head
+    const f = (t / 60 + i * 5) % 12, fx = x + 10 + i * 6;
+    ctx.fillStyle = f < 6 ? '#ffd060' : '#ff7a2a'; ctx.fillRect(fx, y + 6 - f, 3, 3);
+    ctx.fillStyle = '#e04a1a'; ctx.fillRect(fx + 1, y + 9 - f / 2, 2, 2);
+  }
+}
+
+// ---------- loop ----------
+function frame(now) {
+  const k = Math.min(1, (now - camT0) / camDur), e = ease(k);
+  if (!POUR) cam = { cx: camFrom.cx + (camTo.cx - camFrom.cx) * e, cy: camFrom.cy + (camTo.cy - camFrom.cy) * e, z: camFrom.z + (camTo.z - camFrom.z) * e };
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#2a1f33'; ctx.fillRect(0, 0, W, H);
+  if (POUR) cam = { cx: 76, cy: 206, z: 2.4 };
+  ctx.setTransform(cam.z, 0, 0, cam.z, W / 2 - cam.cx * cam.z, H / 2 - cam.cy * cam.z);
+  drawWorld(now, POUR ? LIQ[POUR].wet : null);
+  if (POUR) { drawPour(now); drawElemKelvin(now); } else drawKelvin(now, smirk);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

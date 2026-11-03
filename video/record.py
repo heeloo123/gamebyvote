@@ -75,7 +75,7 @@ def main(name):
                                  box["y"] + box["height"] * random.uniform(0.35, 0.7))
             elif action == "screen":
                 page.evaluate("id => showScreen(id)", arg)
-            elif action in ("show", "hide", "option", "warm"):
+            elif action in ("show", "hide", "option", "warm", "cue"):
                 page.evaluate(f"a => {action}(a)", arg)
             elif action == "nobadge":
                 page.evaluate("nobadge()")

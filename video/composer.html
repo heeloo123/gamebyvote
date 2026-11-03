@@ -52,6 +52,12 @@
   .thumb iframe{position:absolute;left:0;top:0;width:360px;height:640px;border:0;transform:scale(.2722);transform-origin:0 0}
   .opt b{display:block;margin-top:8px;font-size:22px}
   .opt small{display:block;font-size:13px;font-weight:600;color:#c9b8e8}
+  .opt em{display:block;margin-top:6px;font-style:normal;font-size:13px;font-weight:700;line-height:1.2;color:#fff}
+  .opt em .rw{display:block;color:#9ff0a0}
+  .opt em .ct{display:block;margin-top:3px;color:#ff9a8a}
+  .opt.hi .thumb{border-color:#ffcf5c;box-shadow:0 0 0 3px #ffcf5c}
+  .opt.hi{transform:scale(1.08)}
+  .opts.solo .opt:not(.hi){opacity:.25}
   #outro .next{margin-top:22px;font-size:15px;font-weight:600;color:#ffcf5c}
   #outro .handle{margin-top:14px;font-size:17px;font-weight:700;background:#ffcf5c;color:#1f1630;border-radius:999px;padding:8px 18px}
 </style>
@@ -94,6 +100,8 @@
         if (opt.screen) { const f = el('iframe'); f.src = src[opt.screen]; thumb.append(f); }
         else if (opt.image) { thumb.innerHTML = `<img src="${opt.image}" style="width:100%;height:100%;object-fit:cover">`; }
         c.append(thumb, el('b', '', opt.letter), el('small', '', opt.label));
+        if (opt.result) c.append(el('em', '', opt.result));   // what happens if this option wins
+        if (opt.reward) c.append(el('em', '', `<span class="rw">${opt.reward}</span><span class="ct">${opt.cost}</span>`));
         card.querySelector('.opts').append(c);
       });
     };
@@ -103,6 +111,7 @@
     $('outro').querySelector('.next').innerHTML = o.next || '';
     $('outro').querySelector('.handle').innerHTML = o.handle || '';
     if (!o.next) $('outro').querySelector('.next').remove();
+    if (!o.handle) $('outro').querySelector('.handle').remove();
   }
 
   // timeline actions, called by record.py
@@ -122,7 +131,15 @@
   };
   window.warm = id => $('s_' + id).classList.add('warm');
   window.nobadge = () => document.querySelectorAll('.badge').forEach(b => b.classList.remove('on'));
-  window.option = n => $('o' + n).classList.add('on');
+  // option n: reveal it and spotlight it (others dim); option -1: drop the spotlight, all shown side by side
+  window.option = n => {
+    const card = $('outro').querySelector('.opts');
+    card.querySelectorAll('.opt').forEach(o => o.classList.remove('hi'));
+    if (n < 0) { card.classList.remove('solo'); card.querySelectorAll('.opt').forEach(o => o.classList.add('on')); return; }
+    card.classList.add('solo'); $('o' + n).classList.add('on', 'hi');
+  };
+  // "screen:beat" → tells that game screen to play a scripted beat (scenes listen for postMessage({beat}))
+  window.cue = arg => { const [s, beat] = arg.split(':'); $('s_' + s).contentWindow.postMessage({ beat }, '*'); };
 
   const name = new URLSearchParams(location.search).get('ep');
   window.ready = fetch(`episodes/${name}/episode.json`).then(r => r.json()).then(ep => {

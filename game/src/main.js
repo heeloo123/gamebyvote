@@ -1,164 +1,258 @@
-// Game By Vote: the farm. One farm, bigger than the screen; the camera follows the farmer (Stardew feel).
-// Day: plant, harvest, sell. Night: Kelvin from Accounting acts once. Morning: his bill.
+// Game By Vote: the farm, v0.2. EHT-style: the whole farm fits one phone screen.
+// You tap to plant and harvest; workers (named after commenters) work on their own;
+// Kelvin from Accounting schemes where you can see him. Tap him in time to fine him.
 import Phaser from 'phaser';
 import CFG0 from './data/config.json';
-import { T, INK, makeFarmer, makeTools, makeCrops, makeProps, drawFarm } from './art.js';
+import { T, INK, makeProps, drawFarm } from './art.js';
 import { sfx, unlock } from './sfx.js';
 import { load, save, wipe } from './save.js';
 import * as UI from './ui.js';
 
 const q = new URLSearchParams(location.search);
-const DEBUG = q.has('debug');                       // ?debug=1: fast days and crops, for testing
-const CFG = { ...CFG0, ...(DEBUG ? { dayLengthSec: 40, growSec: 6 } : {}) };
+const DEBUG = q.has('debug');                        // ?debug=1: fast days, crops and schemes, for testing
+const CFG = { ...CFG0, ...(DEBUG ? { dayLengthSec: 60, growSec: 6, kelvin: { ...CFG0.kelvin, schemeEverySec: [5, 8] } } : {}) };
 const DAY = CFG.dayLengthSec * 1000, GROW = CFG.growSec * 1000;
-const WT = CFG.world.tilesW, HT = CFG.world.tilesH;
+const WD = CFG.world, WT = WD.tilesW, HT = WD.tilesH;
+const CX = WD.coreX, CY = WD.coreY;
 
-// ---------- farm layout (tiles) ----------
-const plots = [];
-for (let y = 13; y <= 15; y++) for (let x = 9; x <= 13; x++) plots.push([x, y]);
+// ---------- farm layout (world tiles; the core farm is x 2..13, y 5..24) ----------
 const L = {
-  house: [2, 2, 7, 6], door: [4, 6], barn: [21, 2, 26, 6], pond: [3, 22, 8, 26],
-  paths: [[4, 7, 4, 10], [4, 10, 21, 10], [21, 10, 21, 17]],
-  trees: [[11, 22], [15, 25], [19, 28], [24, 25], [6, 30], [12, 33], [20, 33], [25, 31], [2, 15], [26, 12], [9, 28], [16, 19]],
-  plots, votePlot: [[17, 13], [18, 13], [19, 13]],
-  crate: [11, 9], stall: [14, 8, 16, 9], desk: [23, 18], sign: [20, 12],
-  lamps: [[8, 11], [17, 11], [20, 16], [9, 20]],
-  kelvinArea: [19, 16, 26, 22], start: [7, 9],
+  core: [CX, CY, CX + WD.coreW - 1, CY + WD.coreH - 1],
+  house: [CX, CY], barn: [CX + 9, CY], stall: [CX + 4, CY + 2], crate: [CX + 7, CY + 3],
+  yard: [CX, CY + 4, CX + 11, CY + 5],
+  plotRows: [[CX + 2, CX + 6, CY + 7], [CX + 2, CX + 6, CY + 9], [CX + 2, CX + 6, CY + 11]],
+  voteRow: [CX + 8, CX + 10, CY + 7], sign: [CX + 11, CY + 7],
+  desk: [CX + 8, CY + 11], kelvinArea: [CX + 7, CY + 9, CX + 11, CY + 15],
+  lamps: [[CX + 1, CY + 6], [CX + 7, CY + 6], [CX + 11, CY + 10], [CX + 4, CY + 13]],
+  decor: [['farm', 83, CX + 3, CY + 3], ['farm', 85, CX + 8, CY + 2], ['farm', 96, CX + 8, CY + 3], ['town', 83, CX + 11, CY + 7],
+    ['town', 29, CX + 1, CY + 16], ['town', 5, CX + 10, CY + 17], ['town', 17, CX + 6, CY + 18], ['farm', 39, CX + 0, CY + 12]],
+  trees: [[CX + 0, CY + 18], [CX + 11, CY + 13]],
+  meadow: [CX + 1, CY + 14, CX + 10, CY + 19],
 };
 const key = (x, y) => x + ',' + y;
-const tc = v => v * T + T / 2;                      // tile -> centre px
+const tc = v => v * T + T / 2;
+const PLOTS = L.plotRows.flatMap(([x0, x1, y]) => Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, y]));
+const VOTE_PLOTS = Array.from({ length: L.voteRow[1] - L.voteRow[0] + 1 }, (_, i) => [L.voteRow[0] + i, L.voteRow[2]]);
+const CROP_LINES = [4, 16, 28, 40, 52];               // Tiny Farm crop rows: sprout, small, grown
 
 // ---------- time ----------
-let S;                                              // the save
+let S;
 const now = () => Date.now() + S.offset;
 const dayIndex = () => Math.floor((now() - S.epoch) / DAY);
 const dayFrac = () => ((now() - S.epoch) % DAY) / DAY;
 const isNight = () => dayFrac() >= CFG.nightStartsAt;
 const nightAt = d => S.epoch + (d + CFG.nightStartsAt) * DAY;
 
-const RAR = CFG.rarity, MUT = CFG.mutations;
-const QUOTES = ['This farm is now a cost centre.', 'Please hold. Your tap matters to me.', "I've invoiced you for that.",
-  'Per my last email: no.', 'Circling back to your carrots.', 'Senior Accounting. Senior.'];
+const RAR = CFG.rarity, MUT = CFG.mutations, CROPS = CFG.crops;
+const QUOTES = ['This farm is now a cost centre.', 'Your tap has been logged.', "I've invoiced you for that.",
+  'Per my last email: no.', 'Senior Accounting. Senior.', 'Fines are non-refundable. Mostly.'];
+const hireCost = () => CFG.workers.hireBase + CFG.workers.hireStep * S.workers.length;
+const basketValue = () => S.basket.reduce((a, c) => a + c.value, 0);
 
 class Farm extends Phaser.Scene {
   constructor() { super('farm'); }
 
-  preload() { this.load.image('kelvin', 'sprites/kelvin.png'); }
+  preload() {
+    for (const k of ['farm', 'town', 'dungeon']) this.load.spritesheet(k, `sprites/${k}.png`, { frameWidth: 16, frameHeight: 16 });
+    this.load.image('kelvin', 'sprites/kelvin.png');
+  }
 
   create() {
-    makeFarmer(this); makeTools(this); makeCrops(this); makeProps(this);
+    makeProps(this);
     this.blocked = drawFarm(this, WT, HT, L);
-    this.add.image(0, 0, 'farm').setOrigin(0).setDepth(-1000);
+    this.add.image(0, 0, 'farmbg').setOrigin(0).setDepth(-1000);
     const block = (x, y) => this.blocked.add(key(x, y));
-
-    // props
-    this.crate = this.add.image(tc(L.crate[0]), L.crate[1] * T + T, 'crate').setOrigin(.5, 1); block(...L.crate);
-    this.stall = this.add.image((L.stall[0] + 1.5) * T, (L.stall[3] + 1) * T, 'stall').setOrigin(.5, 1);
-    for (let y = L.stall[1]; y <= L.stall[3]; y++) for (let x = L.stall[0]; x <= L.stall[2]; x++) block(x, y);
+    this.crate = this.add.image(tc(L.crate[0]), L.crate[1] * T + T, 'farm', 76).setOrigin(.5, 1); this.crate.setDepth(this.crate.y); block(...L.crate);
     this.add.image(tc(L.desk[0]) + T / 2, L.desk[1] * T + T, 'desk').setOrigin(.5, 1).setDepth(L.desk[1] * T + T); block(...L.desk); block(L.desk[0] + 1, L.desk[1]);
-    this.add.image(tc(L.sign[0]), L.sign[1] * T + T, 'sign').setOrigin(.5, 1).setDepth(L.sign[1] * T + T); block(...L.sign);
     this.lamps = L.lamps.map(([x, y]) => { block(x, y); this.add.image(tc(x), y * T + T, 'lamp').setOrigin(.5, 1).setDepth(y * T + T);
-      return this.add.image(tc(x), y * T - 2, 'glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(5000).setScale(1.4).setAlpha(0); });
-    [this.crate, this.stall].forEach(o => o.setDepth(o.y));
+      return this.add.image(tc(x), y * T - 2, 'glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(5000).setScale(1.2).setAlpha(0); });
 
-    // crops on plots + the three vote seeds
-    this.cropSprites = {};
-    for (const [x, y] of L.plots) this.cropSprites[key(x, y)] = this.add.image(tc(x), y * T + T - 2, 'crop0').setOrigin(.5, 1).setVisible(false).setDepth(y * T + T - 3);
-    this.voteSeeds = L.votePlot.map(([x, y]) => this.add.image(tc(x), y * T + T - 4, 'crop0').setOrigin(.5, 1).setDepth(y * T + T - 3));
+    this.crops = {};
+    PLOTS.forEach(([x, y]) => { this.crops[key(x, y)] = this.add.image(tc(x), y * T + T - 1, 'farm', 4).setOrigin(.5, 1).setVisible(false).setDepth(y * T + 8); });
+    VOTE_PLOTS.forEach(([x, y]) => this.add.image(tc(x), y * T + T - 2, 'farm', 4).setOrigin(.5, 1).setDepth(y * T + 8).setAlpha(.9));
 
-    // characters
-    const st = S.farmer || L.start;
-    this.farmer = this.add.image(tc(st[0]), st[1] * T + T - 1, 'f_down0').setOrigin(.5, 1);
-    this.farmer.dir = 'down'; this.farmer.path = []; this.farmer.anim = 0;
-    this.tool = this.add.image(0, 0, 'tool_hoe').setVisible(false);
-    this.kelvin = this.add.image(tc(23), 20 * T + T, 'kelvin').setOrigin(.5, 1);
-    this.kelvin.target = null; this.kelvin.next = 0;
-    this.shadow = this.add.ellipse(0, 0, 10, 3, 0x000000, .25);
+    // animals, for life
+    this.critters = [[122, CX + 2, CY + 15], [122, CX + 7, CY + 17], [120 + 1, CX + 4, CY + 18]].map(([f, x, y]) => {
+      const a = this.add.image(tc(x), y * T + T, 'farm', f).setOrigin(.5, 1); a.home = [x, y]; a.next = 0; a.target = null; return a; });
 
-    // camera: zoomed in, follows the farmer
-    const cam = this.cameras.main;
-    cam.setBounds(0, 0, WT * T, HT * T); cam.setRoundPixels(true);
-    cam.startFollow(this.farmer, true, .12, .12, 0, 8);
+    // Kelvin
+    this.kelvin = this.add.image(tc(CX + 10), (CY + 12) * T + T, 'kelvin').setOrigin(.5, 1);
+    Object.assign(this.kelvin, { mode: 'wander', target: null, path: [], next: 0, schemeAt: this.time.now + this.nextScheme(), schemesToday: 0 });
+    this.kBubble = this.add.image(0, 0, 'bang').setDepth(4500).setVisible(false);
+    this.kRing = this.add.graphics().setDepth(4500);
+
+    // workers
+    this.workers = [];
+    S.workers.forEach((w, i) => this.spawnWorker(w, i));
+
+    // camera: the whole farm on one screen
+    const cam = this.cameras.main; cam.setRoundPixels(true);
     this.fit(); this.scale.on('resize', () => this.fit());
 
-    // day / night tint over the view
-    this.tint = this.add.rectangle(0, 0, 10, 10, 0x1a2a6a, 0).setOrigin(0).setScrollFactor(0).setDepth(4000);
-    this.dust = this.add.particles(0, 0, 'px', { lifespan: 380, speed: { min: 4, max: 14 }, angle: { min: 200, max: 340 }, scale: { start: 1, end: 0 },
-      tint: 0xd8c6a0, alpha: { start: .8, end: 0 }, emitting: false }).setDepth(3000);
-    this.dirt = this.add.particles(0, 0, 'px', { lifespan: 500, speed: { min: 20, max: 50 }, angle: { min: 220, max: 320 }, gravityY: 120, scale: { start: 1, end: .5 },
-      tint: [0x7a5536, 0x5a3e2a, 0x9a6a3e], emitting: false }).setDepth(3000);
-    this.sparkle = this.add.particles(0, 0, 'px', { lifespan: 700, speed: { min: 20, max: 60 }, scale: { start: 1, end: 0 }, tint: [0xffcf5c, 0xffffff, 0xff9ee0], emitting: false }).setDepth(3001);
+    this.tint = this.add.rectangle(0, 0, 10, 10, 0x18225a, 0).setOrigin(0).setScrollFactor(0).setDepth(4000);
+    this.dirt = this.add.particles(0, 0, 'px', { lifespan: 450, speed: { min: 15, max: 40 }, angle: { min: 220, max: 320 }, gravityY: 110, scale: { start: .8, end: .3 },
+      tint: [0x7a5536, 0x5a3e2a, 0xb07a46], emitting: false }).setDepth(3000);
+    this.sparkle = this.add.particles(0, 0, 'px', { lifespan: 650, speed: { min: 15, max: 45 }, scale: { start: .8, end: 0 }, tint: [0xffcf5c, 0xffffff, 0xff9ee0], emitting: false }).setDepth(3001);
+    this.dust = this.add.particles(0, 0, 'px', { lifespan: 300, speed: { min: 3, max: 10 }, angle: { min: 200, max: 340 }, scale: { start: .6, end: 0 }, tint: 0xd8c6a0, alpha: { start: .8, end: 0 }, emitting: false }).setDepth(2900);
 
-    this.input.on('pointerdown', p => { unlock(); if (!UI.modalOpen && !this.busy) this.tap(p.worldX, p.worldY); });
+    this.input.on('pointerdown', p => { unlock(); if (!UI.modalOpen) this.tap(p.worldX, p.worldY); });
     this.lastNight = isNight(); this.lastDay = dayIndex();
     this.refreshCrops(); this.hud();
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.tick() });
-    this.time.addEvent({ delay: 4000, loop: true, callback: () => { S.farmer = [Math.floor(this.farmer.x / T), Math.floor((this.farmer.y - 1) / T)]; save(S); } });
+    this.time.addEvent({ delay: 5000, loop: true, callback: () => save(S) });
 
-    // Kelvin worked while you were away? Then the bill comes first.
     this.processNights();
-    if (S.pendingBill.length && !isNight()) this.time.delayedCall(600, () => this.showBill());
-    else this.tutorial();
-    window.GBV = { scene: this, get state() { return S; }, skip: ms => { S.offset += ms; this.tick(); }, wipe: () => { wipe(); location.reload(); } };
+    if (S.pendingBill.length && !isNight()) this.time.delayedCall(700, () => this.showBill()); else this.tutorial();
+    window.GBV = { scene: this, get state() { return S; }, skip: ms => { S.offset += ms; this.tick(); }, wipe: () => { wipe(); location.reload(); },
+      tileToScreen: (tx, ty) => { const c = this.cameras.main; return [(tc(tx) - c.worldView.x) * c.zoom, (ty * T + 8 - c.worldView.y) * c.zoom]; } };
   }
 
   fit() {
-    const w = this.scale.width, h = this.scale.height;
-    const z = Math.max(2, Math.min(Math.floor(w / 112), Math.floor(h / 200)));   // whole-pixel zoom, ~7 tiles across a phone
-    this.cameras.main.setZoom(z);
+    const w = this.scale.width, h = this.scale.height, top = 44, bottom = 72;
+    const coreW = WD.coreW * T, coreH = WD.coreH * T;
+    const z = Math.max(1, Math.min(w / coreW, (h - top - bottom) / coreH));
+    const cam = this.cameras.main; cam.setZoom(z);
+    cam.centerOn((CX + WD.coreW / 2) * T, (CY + WD.coreH / 2) * T + (bottom - top) / 2 / z);
     if (this.tint) this.tint.setSize(w, h);
   }
 
+  nextScheme() { const [a, b] = CFG.kelvin.schemeEverySec; return Phaser.Math.Between(a * 1000, b * 1000); }
+
   // ---------- taps ----------
   tap(wx, wy) {
-    const tx = Math.floor(wx / T), ty = Math.floor(wy / T);
+    const tx = Math.floor(wx / T), ty = Math.floor(wy / T), k = this.kelvin;
     this.ring(wx, wy);
-    const k = this.kelvin;
-    if (Math.abs(wx - k.x) < 15 && wy > k.y - 30 && wy < k.y + 4) return this.pokeKelvin();
-    if (tx === L.crate[0] && ty === L.crate[1]) return this.goDo(tx, ty, () => this.openCrate());
-    if (tx >= L.stall[0] && tx <= L.stall[2] && ty >= L.stall[1] && ty <= L.stall[3]) return this.goDo(15, 9, () => this.openShop(), [15, 10]);
-    if ((tx === L.door[0] || tx === L.door[0] + 1) && ty >= L.door[1] - 1 && ty <= L.door[1]) return this.goDo(L.door[0], L.door[1], () => this.askSleep(), [L.door[0], L.door[1] + 1]);
-    if (L.votePlot.some(([x, y]) => x === tx && y === ty) || (tx === L.sign[0] && ty === L.sign[1])) return this.goDo(tx, ty, () => this.voteInfo());
-    if (L.plots.some(([x, y]) => x === tx && y === ty)) return this.goDo(tx, ty, () => this.usePlot(tx, ty));
-    if (tx === L.desk[0] || tx === L.desk[0] + 1) if (ty === L.desk[1]) return UI.toast("Kelvin's desk. Everything is labelled 'MINE'.");
-    this.walkTo(tx, ty);
+    if (Math.abs(wx - k.x) < 15 && wy > k.y - 28 && wy < k.y + 4) return this.tapKelvin();
+    const w = this.workers.find(w => Math.abs(wx - w.x) < 9 && wy > w.y - 18 && wy < w.y + 3);
+    if (w) return this.tapWorker(w);
+    if (PLOTS.some(([x, y]) => x === tx && y === ty)) return this.usePlot(tx, ty, null);
+    if (VOTE_PLOTS.some(([x, y]) => x === tx && y === ty) || (tx === L.sign[0] && ty === L.sign[1])) return this.voteInfo();
+    if (tx === L.crate[0] && ty === L.crate[1]) return this.sellAll();
+    if (tx >= L.stall[0] && tx <= L.stall[0] + 1 && ty >= L.stall[1] && ty <= L.stall[1] + 1) return this.buySeeds(1);
+    if (tx >= L.house[0] && tx <= L.house[0] + 2 && ty >= L.house[1] && ty <= L.house[1] + 3) return this.askSleep();
+    const c = this.critters.find(c => Math.abs(wx - c.x) < 9 && wy > c.y - 14 && wy < c.y + 2);
+    if (c) { sfx.tap(); this.hop(c); return UI.toast(c.frame.name == 122 ? 'Bawk.' : 'Moo. (Kelvin has invoiced this cow.)'); }
+    if (tx >= L.desk[0] && tx <= L.desk[0] + 1 && ty === L.desk[1]) return UI.toast("Kelvin's desk. Everything is labelled 'MINE'.");
   }
 
   ring(x, y) {
     const r = this.add.circle(x, y, 2, 0xffffff, 0).setStrokeStyle(1, 0xffffff, .9).setDepth(3500);
-    this.tweens.add({ targets: r, radius: 7, alpha: 0, duration: 300, onComplete: () => r.destroy() });
+    this.tweens.add({ targets: r, radius: 7, alpha: 0, duration: 280, onComplete: () => r.destroy() });
     sfx.tap();
   }
 
-  // walk next to a target tile, face it, then act
-  goDo(tx, ty, act, stand) {
-    const spots = stand ? [stand] : [[tx, ty + 1], [tx - 1, ty], [tx + 1, ty], [tx, ty - 1]];
-    const here = [Math.floor(this.farmer.x / T), Math.floor((this.farmer.y - 1) / T)];
-    let best = null;
-    for (const s of spots) {
-      if (this.blocked.has(key(...s))) continue;
-      const p = s[0] === here[0] && s[1] === here[1] ? [] : this.findPath(here, s);
-      if (p && (!best || p.length < best.length)) best = p;
+  hop(o) { this.tweens.add({ targets: o, scaleY: .8, scaleX: 1.15, duration: 80, yoyo: true }); }
+
+  // ---------- plots (player and workers share these) ----------
+  usePlot(x, y, worker) {
+    const k = key(x, y), p = S.plots[k];
+    if (!p) {
+      if (S.seeds <= 0) { if (!worker) { sfx.nope(); UI.toast('No seeds left.<br>Buy some at the stall or the button below.'); } return false; }
+      S.seeds--; S.plots[k] = { plantedAt: now(), line: CROP_LINES[(x * 3 + y) % CROP_LINES.length] };
+      sfx.plant(); this.dirt.explode(6, tc(x), y * T + 12); this.flash(x, y);
+      this.refreshCrops(); this.hud(); save(S); if (!worker) this.tutorial('planted'); return true;
     }
-    if (!best) return UI.toast("Can't reach that.");
-    this.farmer.path = best.map(([x, y]) => [tc(x), y * T + T - 1]);
-    this.farmer.onArrive = () => { this.face(tx, ty); act(); };
-    if (!best.length) { this.farmer.onArrive(); this.farmer.onArrive = null; }
+    const left = GROW - (now() - p.plantedAt);
+    if (left > 0) { if (!worker) UI.toast(`Growing… ${Math.ceil(left / 1000)}s left.<br>Nobody knows what it'll be.`); return false; }
+    this.harvest(x, y, worker); return true;
   }
 
-  walkTo(tx, ty) {
-    if (this.blocked.has(key(tx, ty))) return;
-    const here = [Math.floor(this.farmer.x / T), Math.floor((this.farmer.y - 1) / T)];
-    const p = this.findPath(here, [tx, ty]); if (!p) return;
-    this.farmer.path = p.map(([x, y]) => [tc(x), y * T + T - 1]); this.farmer.onArrive = null;
+  harvest(x, y, worker) {
+    delete S.plots[key(x, y)];
+    const roll = list => { let r = Math.random() * 100; for (const it of list) if ((r -= it.chance) < 0) return it; return null; };
+    const rar = roll(RAR) || RAR[0], mut = roll(MUT), tier = RAR.indexOf(rar);
+    const value = Math.round(rar.value * (mut ? mut.mult : 1));
+    const crop = { crop: rar.crop, rarity: rar.id, mutation: mut ? mut.id : null, value };
+    S.basket.push(crop); S.stats.harvested++; save(S);
+    this.refreshCrops(); this.hud(); this.dirt.explode(8, tc(x), y * T + 12);
+    const m = this.add.image(tc(x), y * T + 12, 'dungeon', CROPS[rar.crop].frame).setOrigin(.5, 1).setDepth(3200).setScale(mut && mut.id === 'giant' ? 1.6 : 1);
+    if (mut && mut.id === 'gold') m.setTint(0xffd060);
+    if (mut && mut.id === 'rainbow') m.setTint(0xff9ee0, 0x8ad4ff, 0x9ff0a0, 0xffcf5c);
+    const big = tier >= 2 || !!mut;
+    if (big) this.cameras.main.shake(140, .008);
+    this.tweens.add({ targets: m, y: y * T - 4, duration: 240, ease: 'Back.easeOut', onComplete: () => {
+      this.sparkle.explode(big ? 22 : 8, m.x, m.y - 6); sfx.harvest(tier);
+      this.tweens.add({ targets: m, alpha: 0, y: m.y - 10, delay: 350, duration: 300, onComplete: () => m.destroy() });
+    } });
+    const name = (mut ? mut.name + ' ' : '') + CROPS[rar.crop].name, src = this.textures.get('dungeon').getSourceImage(), f = CROPS[rar.crop].frame;
+    UI.find((cx, cv) => { cx.drawImage(src, (f % 12) * 16, Math.floor(f / 12) * 16, 16, 16, 0, 0, 16, 16);
+        if (mut && mut.id === 'gold') { cx.globalCompositeOperation = 'source-atop'; cx.fillStyle = 'rgba(255,200,60,.55)'; cx.fillRect(0, 0, 16, 16); cx.globalCompositeOperation = 'source-over'; }
+        cv.style.filter = mut && mut.id === 'rainbow' ? 'hue-rotate(120deg) saturate(2)' : ''; },
+      `<span class="r" style="color:${rar.color};-webkit-text-stroke:.5px #2b1d3a">${rar.name.toUpperCase()}</span><br>${name} · ● ${value}${worker ? `<br><span style="color:#6b5a7a">found by ${worker.info.name}</span>` : ''}`, big);
+    if (!worker) this.tutorial('harvested');
   }
 
-  findPath(a, b) {                                   // breadth-first search on the tile grid
+  flash(x, y) {
+    const r = this.add.rectangle(x * T, y * T, T, T, 0xffffff, .7).setOrigin(0).setDepth(2500);
+    this.tweens.add({ targets: r, alpha: 0, duration: 250, onComplete: () => r.destroy() });
+  }
+
+  refreshCrops() {
+    for (const [x, y] of PLOTS) {
+      const k = key(x, y), s = this.crops[k], p = S.plots[k];
+      if (!p) { s.setVisible(false); if (s.pulse) { s.pulse.stop(); s.pulse = null; s.setScale(1); } continue; }
+      const f = (now() - p.plantedAt) / GROW, line = p.line || 4;
+      const frame = f >= 1 ? line + 2 : f > .5 ? line + 1 : line;
+      if (s.frame.name !== frame) s.setFrame(frame);
+      if (f >= 1 && !s.pulse) s.pulse = this.tweens.add({ targets: s, scaleY: 1.14, duration: 380, yoyo: true, repeat: -1 });
+      s.setVisible(true);
+    }
+  }
+
+  // ---------- economy ----------
+  sellAll(by) {
+    if (!S.basket.length) { if (!by) { sfx.nope(); UI.toast('Basket is empty.<br>Harvest some monsters first.'); } return; }
+    const total = basketValue(); S.coins += total; S.stats.sold += S.basket.length; S.basket = []; save(S); this.hud(); sfx.coin();
+    this.popup(this.crate.x, this.crate.y - 16, '+' + total); this.sparkle.explode(14, this.crate.x, this.crate.y - 8);
+    if (!by) this.tutorial('sold');
+  }
+
+  buySeeds(n) {
+    const cost = n * CFG.seedPrice;
+    if (S.coins < cost) { sfx.nope(); return UI.toast(`Seeds cost ● ${CFG.seedPrice} each.<br>Sell monsters at the crate.`); }
+    S.coins -= cost; S.seeds += n; save(S); this.hud(); sfx.buy();
+    this.popup(tc(L.stall[0]) + 8, L.stall[1] * T, '+' + n + ' SEED' + (n > 1 ? 'S' : ''));
+  }
+
+  hire() {
+    const n = S.workers.length, names = CFG.workers.placeholderNames, frames = CFG.workers.frames;
+    if (n >= CFG.workers.max) return UI.toast('The farm is full.');
+    const cost = hireCost(); if (S.coins < cost) { sfx.nope(); return UI.toast(`Hiring costs ● ${cost}.`); }
+    S.coins -= cost; const w = { name: names[n % names.length], frame: frames[n % frames.length], jobs: 0 };
+    S.workers.push(w); save(S); this.hud(); sfx.morning();
+    const wk = this.spawnWorker(w, n); this.sparkle.explode(18, wk.x, wk.y - 8);
+    UI.toast(`<b>${w.name}</b> joined the farm!<br>Soon, workers get commenters' names.`, 3000);
+  }
+
+  popup(x, y, text, color = '#ffcf5c') {
+    const t = this.add.text(x, y, text, { fontFamily: '"Press Start 2P"', fontSize: '6px', color, stroke: INK, strokeThickness: 2, resolution: 10 }).setOrigin(.5).setDepth(3600);
+    this.tweens.add({ targets: t, y: y - 16, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+  }
+
+  voteInfo() { UI.toast('These 3 seeds wait for <b>your vote</b>:<br>💧 water · 🥤 cola · 🌋 lava<br>Comment A, B or C on Episode 1.', 3600); }
+
+  // ---------- workers ----------
+  spawnWorker(data, i) {
+    const [x0, y0, x1, y1] = L.meadow, tx = x0 + (i * 3) % (x1 - x0), ty = y0 + 1 + (i % 3);
+    const w = this.add.image(tc(tx), ty * T + T, 'dungeon', data.frame).setOrigin(.5, 1);
+    w.info = data; w.path = []; w.job = null; w.busyUntil = 0; w.next = 0;
+    w.tag = this.add.text(w.x, w.y - 17, data.name, { fontFamily: '"Press Start 2P"', fontSize: '5px', color: '#ffffff', stroke: INK, strokeThickness: 2, resolution: 10 }).setOrigin(.5, 1);
+    this.workers.push(w); return w;
+  }
+
+  tapWorker(w) {
+    this.hop(w); sfx.tap();
+    const paper = w.busyUntil > this.time.now ? '<br>Doing Kelvin\'s paperwork…' : '';
+    UI.toast(`<b>${w.info.name}</b> · jobs done: ${w.info.jobs || 0}${paper}`);
+  }
+
+  here(o) { return [Math.floor(o.x / T), Math.floor((o.y - 1) / T)]; }
+
+  findPath(a, b) {
     const prev = new Map([[key(...a), null]]), queue = [a];
     while (queue.length) {
       const [x, y] = queue.shift();
-      if (x === b[0] && y === b[1]) { const out = []; let k = key(x, y);
-        while (k && k !== key(...a)) { out.unshift(k.split(',').map(Number)); k = prev.get(k); } return out; }
+      if (x === b[0] && y === b[1]) { const out = []; let k = key(x, y); while (k && k !== key(...a)) { out.unshift(k.split(',').map(Number)); k = prev.get(k); } return out; }
       for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
         const nx = x + dx, ny = y + dy, nk = key(nx, ny);
         if (nx < 0 || ny < 0 || nx >= WT || ny >= HT || prev.has(nk) || this.blocked.has(nk)) continue;
@@ -168,141 +262,113 @@ class Farm extends Phaser.Scene {
     return null;
   }
 
-  face(tx, ty) {
-    const fx = Math.floor(this.farmer.x / T), fy = Math.floor((this.farmer.y - 1) / T);
-    this.farmer.dir = ty < fy ? 'up' : ty > fy ? 'down' : 'side';
-    this.farmer.setFlipX(tx < fx); this.farmer.setTexture('f_' + this.farmer.dir + '0');
+  sendTo(o, tile, then) {
+    const p = this.findPath(this.here(o), tile); if (!p) return false;
+    o.path = p.map(([x, y]) => [tc(x), y * T + T - 1]); o.then = then;
+    if (!p.length) { o.then = null; then && then(); }
+    return true;
   }
 
-  swing(toolKey, done) {                              // tool wind-up and swing, with squash and stretch
-    const f = this.farmer, t = this.tool, left = f.flipX;
-    this.busy = true;
-    t.setTexture(toolKey).setVisible(true).setPosition(f.x + (left ? -7 : 7), f.y - 9).setDepth(f.depth + 1).setFlipX(left).setAngle(left ? 40 : -40);
-    this.tweens.add({ targets: f, scaleY: .85, scaleX: 1.12, duration: 90, yoyo: true });
-    this.tweens.add({ targets: t, angle: left ? -60 : 60, duration: 160, delay: 90, ease: 'Back.easeIn', onComplete: () => {
-      t.setVisible(false); this.busy = false; done && done(); } });
-  }
+  claimed(k) { return this.workers.some(w => w.job === k); }
 
-  // ---------- plots ----------
-  usePlot(x, y) {
-    const k = key(x, y), p = S.plots[k];
-    if (!p) {
-      if (S.seeds <= 0) { sfx.nope(); return UI.toast('No seeds left.<br>Buy some at the seed stall.'); }
-      return this.swing('tool_seeds', () => {
-        S.seeds--; S.plots[k] = { plantedAt: now() }; sfx.plant(); this.dirt.explode(8, tc(x), y * T + 12); this.flash(x, y);
-        this.refreshCrops(); this.hud(); save(S); this.tutorial('planted');
-      });
+  thinkWorker(w) {
+    if (w.path.length || w.busyUntil > this.time.now || this.time.now < w.next) return;
+    const readyK = Object.entries(S.plots).find(([k, p]) => now() - p.plantedAt >= GROW && !this.claimed(k));
+    const emptyK = S.seeds > 0 && PLOTS.map(p => key(...p)).find(k => !S.plots[k] && !this.claimed(k));
+    const target = readyK ? readyK[0] : emptyK;
+    if (target) {
+      const [x, y] = target.split(',').map(Number); w.job = target;
+      if (!this.sendTo(w, [x, y + 1], () => { this.hop(w); const did = this.usePlot(x, y, w); if (did) w.info.jobs = (w.info.jobs || 0) + 1; w.job = null; w.next = this.time.now + 700; })) w.job = null;
+      return;
     }
-    const left = GROW - (now() - p.plantedAt);
-    if (left > 0) return UI.toast(`Growing… ready in ${Math.ceil(left / 1000)}s.<br>Nobody knows what it'll be.`);
-    this.swing('tool_basket', () => this.harvest(x, y));
-  }
-
-  harvest(x, y) {
-    const k = key(x, y); delete S.plots[k];
-    const roll = list => { let r = Math.random() * 100; for (const it of list) { if ((r -= it.chance) < 0) return it; } return null; };
-    const rar = roll(RAR) || RAR[0], mut = roll(MUT), tier = RAR.indexOf(rar);
-    const value = Math.round(rar.value * (mut ? mut.mult : 1));
-    const crop = { crop: rar.crop, rarity: rar.id, mutation: mut ? mut.id : null, value };
-    S.basket.push(crop); S.stats.harvested++; save(S);
-    this.refreshCrops(); this.hud(); this.dirt.explode(10, tc(x), y * T + 12);
-    // the monster pops out of the ground before the card
-    const m = this.add.image(tc(x), y * T + 12, 'm_' + rar.crop).setOrigin(.5, 1).setDepth(3200).setScale(mut && mut.id === 'giant' ? 1.6 : 1);
-    if (mut && mut.id === 'gold') m.setTint(0xffd060);
-    this.busy = true;
-    if (tier >= 2 || mut) this.cameras.main.shake(120, .006);
-    this.tweens.add({ targets: m, y: y * T - 6, duration: 260, ease: 'Back.easeOut', onComplete: () => {
-      this.sparkle.explode(tier >= 2 || mut ? 24 : 10, m.x, m.y - 6); sfx.harvest(tier);
-      this.time.delayedCall(250, () => { m.destroy(); this.busy = false; this.reveal(crop, rar, mut); });
-    } });
-  }
-
-  reveal(crop, rar, mut) {
-    const name = CFG.crops[crop.crop];
-    UI.open('reveal', `<div class="rar" style="color:${rar.color};-webkit-text-stroke:1px #2b1d3a">${rar.name.toUpperCase()}${mut ? ' · ' + mut.name.toUpperCase() : ''}</div>
-      <canvas width="14" height="14" id="rv"></canvas><h1>${mut ? mut.name + ' ' : ''}${name}</h1>
-      <div class="val">● ${crop.value}</div><div class="sub">${mut ? `Mutation! Worth ×${mut.mult}` : 'Into the basket it goes.'}</div>`, [{ id: 'ok', label: 'NICE' }])
-      .then(() => this.tutorial('harvested'));
-    const cv = UI.card('reveal').querySelector('#rv'), c = cv.getContext('2d');
-    c.drawImage(this.textures.get('m_' + crop.crop).getSourceImage(), 0, 0);
-    if (mut && mut.id === 'gold') { c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(255,200,60,.55)'; c.fillRect(0, 0, 14, 14); }
-    if (mut && mut.id === 'rainbow') cv.style.animation = 'none', cv.animate([{ filter: 'hue-rotate(0deg)' }, { filter: 'hue-rotate(360deg)' }], { duration: 1200, iterations: Infinity });
-    if (mut && mut.id === 'giant') cv.style.transform = 'scale(1.25)';
-  }
-
-  flash(x, y) {
-    const r = this.add.rectangle(x * T, y * T, T, T, 0xffffff, .7).setOrigin(0).setDepth(2500);
-    this.tweens.add({ targets: r, alpha: 0, duration: 250, onComplete: () => r.destroy() });
-  }
-
-  refreshCrops() {
-    for (const [x, y] of L.plots) {
-      const k = key(x, y), s = this.cropSprites[k], p = S.plots[k];
-      if (!p) { s.setVisible(false); continue; }
-      const f = (now() - p.plantedAt) / GROW;
-      const tex = f >= 1 ? 'crop3' : f > .66 ? 'crop2' : f > .33 ? 'crop1' : 'crop0';
-      if (s.texture.key !== tex) { s.setTexture(tex); if (tex === 'crop3') this.tweens.add({ targets: s, scaleY: 1.12, duration: 420, yoyo: true, repeat: -1 }); }
-      s.setVisible(true);
+    if (S.basket.length >= 8 && !this.workers.some(o => o.job === 'sell')) {
+      w.job = 'sell'; this.sendTo(w, [L.crate[0], L.crate[1] + 1], () => { this.hop(w); this.sellAll(w); w.info.jobs = (w.info.jobs || 0) + 1; w.job = null; });
+      return;
     }
+    const [x0, y0, x1, y1] = L.meadow;
+    this.sendTo(w, [Phaser.Math.Between(x0, x1), Phaser.Math.Between(y0, y1)]);
+    w.next = this.time.now + Phaser.Math.Between(1500, 4000);
   }
 
-  // ---------- crate and stall ----------
-  openCrate() {
-    if (!S.basket.length) { sfx.nope(); return UI.toast('The crate is hungry.<br>Harvest something first.'); }
-    const groups = {};
-    for (const c of S.basket) { const n = (c.mutation ? MUT.find(m => m.id === c.mutation).name + ' ' : '') + CFG.crops[c.crop];
-      groups[n] = groups[n] || { n: 0, v: 0 }; groups[n].n++; groups[n].v += c.value; }
-    const total = S.basket.reduce((a, c) => a + c.value, 0);
-    UI.open('crate', `<h1>SHIPPING CRATE</h1><div class="sub">Picked up every morning. Kelvin takes no cut. Yet.</div>
-      ${Object.entries(groups).map(([n, g]) => `<div class="ln"><span>${g.n} × ${n}</span><b>● ${g.v}</b></div>`).join('')}
-      <hr><div class="ln"><span>TOTAL</span><b>● ${total}</b></div>`, [{ id: 'sell', label: 'SELL ALL' }, { id: 'close', label: 'KEEP', alt: true }])
-      .then(v => { if (v !== 'sell') return;
-        S.coins += total; S.stats.sold += S.basket.length; S.basket = []; save(S); this.hud(); sfx.coin();
-        this.popup(this.crate.x, this.crate.y - 16, '+' + total); this.sparkle.explode(16, this.crate.x, this.crate.y - 8); this.tutorial('sold'); });
-  }
-
-  openShop() {
-    const P = CFG.seedPrice;
-    UI.open('shop', `<h1>SEED STALL</h1><div class="sub">Mystery monster seeds. No refunds. No questions.</div>
-      <div class="ln"><span>1 seed</span><b>● ${P}</b></div><div class="ln"><span>5 seeds</span><b>● ${P * 5}</b></div><hr>
-      <div class="ln"><span>You have</span><b>● ${S.coins}</b></div>`,
-      [{ id: '1', label: 'BUY 1', disabled: S.coins < P }, { id: '5', label: 'BUY 5', disabled: S.coins < P * 5 }, { id: 'close', label: 'BYE', alt: true }])
-      .then(v => { const n = +v; if (!n) return; S.coins -= n * P; S.seeds += n; save(S); this.hud(); sfx.buy();
-        this.popup(this.stall.x, this.stall.y - 30, '+' + n + ' SEED' + (n > 1 ? 'S' : '')); });
-  }
-
-  popup(x, y, text, color = '#ffcf5c') {
-    const t = this.add.text(x, y, text, { fontFamily: '"Press Start 2P"', fontSize: '8px', color, stroke: INK, strokeThickness: 3, resolution: 8 })
-      .setOrigin(.5).setDepth(3600);
-    this.tweens.add({ targets: t, y: y - 18, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
-  }
-
-  voteInfo() {
-    UI.toast('These 3 seeds wait for <b>your vote</b>:<br>💧 water · 🥤 cola · 🌋 lava<br>Comment A, B or C on Episode 1.', 3600);
+  stepMover(o, dt, speed) {
+    if (!o.path || !o.path.length) return false;
+    const [x, y] = o.path[0], dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy), sp = speed * dt / 1000;
+    if (Math.abs(dx) > .5) o.setFlipX(dx < 0);
+    if (d <= sp) { o.x = x; o.y = y; o.path.shift(); if (!o.path.length && o.then) { const t = o.then; o.then = null; t(); } }
+    else { o.x += dx / d * sp; o.y += dy / d * sp; }
+    o.bob = (o.bob || 0) + dt;
+    return true;
   }
 
   // ---------- Kelvin ----------
-  pokeKelvin() {
-    sfx.beepClick(); const k = this.kelvin;
-    this.tweens.add({ targets: k, scaleY: .82, scaleX: 1.15, duration: 80, yoyo: true });
-    UI.toast('Kelvin: “' + Phaser.Utils.Array.GetRandom(QUOTES) + '”');
+  tapKelvin() {
+    const k = this.kelvin; this.hop(k);
+    if (k.mode === 'approach' || k.mode === 'scheme') {
+      S.coins += CFG.kelvin.fine; S.stats.fines++; save(S); this.hud(); sfx.coin(); sfx.beepClick();
+      this.popup(k.x, k.y - 30, 'FINED +' + CFG.kelvin.fine); this.sparkle.explode(14, k.x, k.y - 12);
+      UI.toast('Caught him! Kelvin pays a fine.<br>He is furious about this.');
+      this.endScheme('sulk'); this.tutorial('fined'); return;
+    }
+    sfx.beepClick(); UI.toast('Kelvin: “' + Phaser.Utils.Array.GetRandom(QUOTES) + '”');
   }
 
-  moveKelvin(dt) {
-    const k = this.kelvin, [x0, y0, x1, y1] = L.kelvinArea;
-    if (!k.target && this.time.now > k.next) {
-      for (let i = 0; i < 10; i++) { const tx = Phaser.Math.Between(x0, x1), ty = Phaser.Math.Between(y0, y1);
-        if (!this.blocked.has(key(tx, ty))) { k.target = [tc(tx), ty * T + T]; break; } }
-    }
-    if (k.target) {
-      const dx = k.target[0] - k.x, dy = k.target[1] - k.y, d = Math.hypot(dx, dy), sp = 12 * dt / 1000;
-      if (d <= sp) { k.target = null; k.next = this.time.now + Phaser.Math.Between(2500, 6000); }
-      else { k.x += dx / d * sp; k.y += dy / d * sp; k.setFlipX(dx > 0); }
-    }
-    k.y = Math.round(k.y); k.setDepth(k.y);
+  startScheme() {
+    const k = this.kelvin, kinds = [];
+    const growing = Object.entries(S.plots).filter(([, p]) => now() - p.plantedAt < GROW);
+    if (growing.length) kinds.push('audit');
+    if (S.basket.length) kinds.push('snack');
+    const free = this.workers.filter(w => w.busyUntil < this.time.now);
+    if (free.length) kinds.push('invoice');
+    if (!kinds.length) return;
+    const kind = Phaser.Utils.Array.GetRandom(kinds);
+    let tile, label;
+    if (kind === 'audit') { const [kk] = Phaser.Utils.Array.GetRandom(growing); k.victim = kk; const [x, y] = kk.split(',').map(Number); tile = [x, y + 1]; label = 'AUDIT'; }
+    if (kind === 'snack') { tile = [L.crate[0], L.crate[1] + 1]; label = 'SNACK'; }
+    if (kind === 'invoice') { const w = Phaser.Utils.Array.GetRandom(free); k.victim = w; tile = this.here(w); label = 'INVOICE'; }
+    k.kind = kind; k.mode = 'approach'; k.label = label;
+    if (!this.sendTo(k, tile, () => { k.mode = 'scheme'; k.schemeEnd = this.time.now + CFG.kelvin.schemeSec * 1000; })) return this.endScheme();
+    UI.toast('Kelvin is up to something…<br><b>Tap him</b> before he finishes!'); sfx.nope();
   }
 
-  // Kelvin's night shift: one act per night, losses capped, always leaves something worth more.
+  endScheme(mode = 'wander') {
+    const k = this.kelvin; k.mode = mode; k.path = []; k.then = null; k.kind = null; k.victim = null;
+    k.schemeAt = this.time.now + this.nextScheme() + (mode === 'sulk' ? 3000 : 0);
+    if (mode === 'sulk') this.time.delayedCall(2500, () => { if (k.mode === 'sulk') k.mode = 'wander'; });
+    this.kBubble.setVisible(false); this.kRing.clear();
+  }
+
+  completeScheme() {
+    const k = this.kelvin; let line, loss = 0;
+    if (k.kind === 'audit' && S.plots[k.victim]) { S.plots[k.victim].plantedAt = now(); loss = 5; line = 'Audited a plot (timer reset)'; this.flash(...k.victim.split(',').map(Number)); }
+    if (k.kind === 'snack' && S.basket.length) { S.basket.sort((a, b) => a.value - b.value); const c = S.basket.shift(); loss = c.value; line = `Snack fee: ate your ${CROPS[c.crop].name}`; }
+    if (k.kind === 'invoice' && k.victim) { k.victim.busyUntil = this.time.now + 15000; loss = 4; line = `Invoiced ${k.victim.info.name} for breathing`; this.popup(k.victim.x, k.victim.y - 22, 'PAPERWORK', '#ff9a8a'); }
+    if (line) { S.pendingBill.push({ text: line, amt: loss ? `-● ${loss}` : '', kind: 'minus' }); S.dayLoss += loss; save(S); this.hud(); this.refreshCrops();
+      this.popup(k.x, k.y - 30, k.label + '!', '#ff9a8a'); sfx.beepClick(); UI.toast('Too late. ' + line + '.<br>It goes on his bill.'); }
+    k.schemesToday++; this.endScheme();
+  }
+
+  updateKelvin(dt) {
+    const k = this.kelvin;
+    if (this.lastDay !== dayIndex()) k.schemesToday = 0;
+    if (k.mode === 'wander') {
+      if (!isNight() && this.time.now > k.schemeAt && k.schemesToday < CFG.kelvin.maxSchemesPerDay && !UI.modalOpen) this.startScheme();
+      else if (!k.path.length && this.time.now > k.next) {
+        const [x0, y0, x1, y1] = L.kelvinArea; this.sendTo(k, [Phaser.Math.Between(x0, x1), Phaser.Math.Between(y0, y1)]);
+        k.next = this.time.now + Phaser.Math.Between(2500, 6000);
+      }
+    }
+    this.stepMover(k, dt, k.mode === 'approach' ? 22 : 10);
+    this.kBubble.setVisible(k.mode === 'approach' || k.mode === 'scheme').setPosition(k.x, k.y - 32 + Math.sin(this.time.now / 120) * 1.5);
+    this.kRing.clear();
+    if (k.mode === 'scheme') {
+      const f = 1 - (k.schemeEnd - this.time.now) / (CFG.kelvin.schemeSec * 1000);
+      this.kRing.lineStyle(2, 0xff5a4a, 1).beginPath().arc(k.x, k.y - 12, 15, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2).strokePath();
+      if (f >= 1) this.completeScheme();
+    }
+    k.setDepth(k.y);
+  }
+
+  // ---------- nights and bills ----------
   processNights() {
     let d = S.nightsDone + 1, count = 0;
     while (nightAt(d) <= now()) { this.kelvinNight(d); S.nightsDone = d; d++; count++; }
@@ -311,55 +377,40 @@ class Farm extends Phaser.Scene {
     return count;
   }
 
-  kelvinNight(d) {
-    const B = S.pendingBill, P = CFG.seedPrice, acts = [];
+  kelvinNight() {
+    const B = S.pendingBill, acts = [];
     const growing = Object.entries(S.plots).filter(([, p]) => now() - p.plantedAt < GROW);
     if (S.basket.length) acts.push('eat');
     if (growing.length) acts.push('audit');
     if (S.coins >= 3) acts.push('tax');
-    const act = acts.length ? acts[Math.floor(Math.random() * acts.length)] : null;
-    if (act === 'eat') {                                     // eats the cheapest crop in the basket
-      S.basket.sort((a, b) => a.value - b.value); const c = S.basket.shift();
-      const seeds = Math.ceil(c.value / P) + 1; S.seeds += seeds;
-      B.push({ text: `Snack fee: ate your ${CFG.crops[c.crop]}`, amt: `-● ${c.value}`, kind: 'minus' },
-             { text: `Left ${seeds} seeds (they look cursed)`, amt: `+● ${seeds * P}`, kind: 'plus' });
-    } else if (act === 'audit') {                            // resets one growing plot, pays you for the trouble
-      const [k] = growing[Math.floor(Math.random() * growing.length)]; S.plots[k].plantedAt = now(); S.coins += 10;
-      B.push({ text: 'Audited a plot. Timer reset', amt: '1 plot', kind: 'minus', at: k },
-             { text: 'Audit refund (he miscounted)', amt: '+● 10', kind: 'plus' });
-    } else if (act === 'tax') {
-      S.coins -= 3; S.seeds += 2;
-      B.push({ text: 'Looking-at-me tax', amt: '-● 3', kind: 'minus' }, { text: 'Change: 2 seeds, wrong currency', amt: `+● ${2 * P}`, kind: 'plus' });
-    } else {
-      S.seeds += 1; B.push({ text: 'Found nothing to bill. Furious.', amt: '', kind: '' }, { text: 'Left 1 seed out of spite', amt: `+● ${P}`, kind: 'plus' });
-    }
-    S.lastBillDay = d + 1;
-    if (B.length > CFG.kelvin.maxBillLines * 2 + 1) B.splice(1, B.length - CFG.kelvin.maxBillLines * 2 - 1);
+    if (S.workers.length) acts.push('overtime');
+    const act = acts.length ? Phaser.Utils.Array.GetRandom(acts) : null;
+    if (act === 'eat') { S.basket.sort((a, b) => a.value - b.value); const c = S.basket.shift(); S.dayLoss += c.value;
+      B.push({ text: `Midnight snack: your ${CROPS[c.crop].name}`, amt: `-● ${c.value}`, kind: 'minus' }); }
+    else if (act === 'audit') { const [k] = Phaser.Utils.Array.GetRandom(growing); S.plots[k].plantedAt = now(); S.dayLoss += 5;
+      B.push({ text: 'Night audit of a plot', amt: '-● 5', kind: 'minus' }); }
+    else if (act === 'tax') { S.coins -= 3; S.dayLoss += 3; B.push({ text: 'Looking-at-me tax', amt: '-● 3', kind: 'minus' }); }
+    else if (act === 'overtime') { const w = Phaser.Utils.Array.GetRandom(S.workers); S.dayLoss += 4;
+      B.push({ text: `Billed ${w.name} for sleeping`, amt: '-● 4', kind: 'minus' }); }
+    else B.push({ text: 'Found nothing to bill. Furious.', amt: '', kind: '' });
+    if (B.length > CFG.kelvin.maxBillLines) B.splice(0, B.length - CFG.kelvin.maxBillLines);
   }
 
   showBill() {
-    if (!S.pendingBill.length) return this.tutorial();
-    const lines = S.pendingBill, at = (lines.find(l => l.at) || {}).at;
-    sfx.beepClick();
-    UI.open('bill', `<h1>INVOICE #${String(S.lastBillDay || dayIndex() + 1).padStart(3, '0')}</h1><div class="sub">FROM: KELVIN, ACCOUNTING · NIGHT SHIFT</div>
+    if (!S.pendingBill.length || UI.modalOpen) return this.tutorial();
+    const refund = S.dayLoss + 5;
+    const lines = [...S.pendingBill, { text: 'Refund (he miscounted again)', amt: `+● ${refund}`, kind: 'plus' }];
+    S.billNo = (S.billNo || 0) + 1; sfx.beepClick();
+    UI.open('bill', `<h1>INVOICE #${String(S.billNo).padStart(3, '0')}</h1><div class="sub">FROM: KELVIN, ACCOUNTING</div>
       ${lines.map(l => `<div class="ln"><span>${l.text}</span><b class="${l.kind}">${l.amt}</b></div>`).join('')}
       <hr><div class="ln"><span>NET</span><b class="plus">YOU'RE STILL UP</b></div><div class="sub" style="margin:8px 0 0">He is furious about this.</div>`,
       [{ id: 'ok', label: 'PAY NOTHING' }]).then(() => {
-        S.pendingBill = []; save(S); this.hud(); this.refreshCrops();
-        if (at) { const [x, y] = at.split(',').map(Number); this.lookAt(tc(x), y * T); } else this.tutorial();
+        S.coins += refund; S.pendingBill = []; S.dayLoss = 0; save(S); this.hud(); this.popup(this.kelvin.x, this.kelvin.y - 30, '+' + refund); this.tutorial();
       });
   }
 
-  lookAt(x, y) {                                            // camera visits the scene of the crime, then comes back
-    const cam = this.cameras.main, b = this.add.image(x, y - 4, 'bang').setDepth(3700);
-    this.tweens.add({ targets: b, y: y - 9, duration: 300, yoyo: true, repeat: 3 });
-    cam.stopFollow(); cam.pan(x, y, 500, 'Sine.easeInOut');
-    this.time.delayedCall(1700, () => { b.destroy(); cam.pan(this.farmer.x, this.farmer.y, 400, 'Sine.easeInOut', false, (c, p) => {
-      if (p === 1) { cam.startFollow(this.farmer, true, .12, .12, 0, 8); this.tutorial(); } }); });
-  }
-
   askSleep() {
-    UI.open('shop', `<h1>BED</h1><div class="sub">Sleep until morning? Kelvin works the night shift. Crops keep growing.</div>`,
+    UI.open('sheet', `<h1>FARMHOUSE</h1><div class="sub">Sleep until morning? Kelvin works the night shift. Crops keep growing.</div>`,
       [{ id: 'yes', label: 'SLEEP' }, { id: 'no', label: 'NOT YET', alt: true }]).then(v => {
         if (v !== 'yes') return;
         const nextMorning = S.epoch + (dayIndex() + 1) * DAY + 1000;
@@ -372,24 +423,28 @@ class Farm extends Phaser.Scene {
   tick() {
     const n = this.processNights(), night = isNight(), day = dayIndex();
     if (night && !this.lastNight) { sfx.night(); UI.toast('Night falls.<br>Kelvin is clocking in.'); }
-    if ((!night && this.lastNight) || day !== this.lastDay) { if (!UI.modalOpen) { sfx.morning(); this.showBill(); } }
+    if (((!night && this.lastNight) || day !== this.lastDay) && !UI.modalOpen) { sfx.morning(); this.showBill(); }
     else if (n && !night && !UI.modalOpen) this.showBill();
+    if (day !== this.lastDay) this.kelvin.schemesToday = 0;
     this.lastNight = night; this.lastDay = day;
     this.refreshCrops(); this.hud();
-    if (!S.seen.harvest && Object.values(S.plots).some(p => now() - p.plantedAt >= GROW)) this.tutorial('ready');
+    if (!S.seen.ready && Object.values(S.plots).some(p => now() - p.plantedAt >= GROW)) this.tutorial('ready');
   }
 
-  hud() { UI.setHud({ day: dayIndex() + 1, night: isNight(), coins: S.coins, seeds: S.seeds, basket: S.basket.length }); }
+  hud() {
+    UI.setHud({ day: dayIndex() + 1, night: isNight(), coins: S.coins, seeds: S.seeds, basket: S.basket.length,
+      seedCost: CFG.seedPrice * 5, sellValue: basketValue(), hireCost: hireCost(), canHire: S.workers.length < CFG.workers.max });
+  }
 
   tutorial(ev) {
     const s = S.seen;
-    if (ev === 'planted' && !s.plant) { s.plant = 1; UI.setHint(`Crops take ${CFG.growSec} s. Nobody knows what will grow.<br>Explore, or poke Kelvin.`); this.time.delayedCall(6000, () => this.tutorial()); }
-    else if (ev === 'ready' && !s.harvest) { UI.setHint('Something is ready! Tap the glowing crop.'); }
-    else if (ev === 'harvested' && !s.harvest) { s.harvest = 1; UI.setHint('Sell your monsters at the crate 📦'); }
-    else if (ev === 'sold' && !s.sell) { s.sell = 1; UI.setHint('Buy more seeds at the stall. Mind Kelvin at night.'); this.time.delayedCall(6000, () => UI.setHint(null)); }
+    if (ev === 'planted' && !s.plant) { s.plant = 1; UI.setHint(`Monsters grow in ${CFG.growSec}s. Plant more!`); this.time.delayedCall(5000, () => this.tutorial()); }
+    else if (ev === 'ready' && !s.ready) { s.ready = 1; UI.setHint('Something is ready! Tap the bouncing crop.'); }
+    else if (ev === 'harvested' && !s.harvest) { s.harvest = 1; UI.setHint('Sell monsters at the crate (or SELL below).<br>Then HIRE a worker to farm for you.'); this.time.delayedCall(6000, () => this.tutorial()); }
+    else if (ev === 'fined' && !s.fined) { s.fined = 1; }
     else if (!ev) {
       if (!s.plant) UI.setHint('Tap the soil to plant a seed 🌱');
-      else if (s.harvest && !s.sell && S.basket.length) UI.setHint('Sell your monsters at the crate 📦');
+      else if (!S.workers.length && s.harvest && S.coins >= hireCost()) UI.setHint('You can afford a worker. Tap HIRE!');
       else UI.setHint(null);
     }
     save(S);
@@ -397,25 +452,26 @@ class Farm extends Phaser.Scene {
 
   // ---------- frame ----------
   update(t, dt) {
-    const f = this.farmer;
-    if (f.path.length) {
-      const [x, y] = f.path[0], dx = x - f.x, dy = y - f.y, d = Math.hypot(dx, dy), sp = 52 * dt / 1000;
-      if (Math.abs(dx) > Math.abs(dy)) { f.dir = 'side'; f.setFlipX(dx < 0); } else f.dir = dy < 0 ? 'up' : 'down';
-      if (d <= sp) { f.x = x; f.y = y; f.path.shift(); if (!f.path.length && f.onArrive) { const a = f.onArrive; f.onArrive = null; a(); } }
-      else { f.x += dx / d * sp; f.y += dy / d * sp; }
-      f.anim += dt;
-      const fr = Math.floor(f.anim / 140) % 2; f.setTexture('f_' + f.dir + fr);
-      if (Math.floor((f.anim - dt) / 280) !== Math.floor(f.anim / 280)) { this.dust.explode(2, f.x, f.y); sfx.step(); }
-    } else if (!this.busy) f.setTexture('f_' + f.dir + '0');
-    f.setDepth(f.y); this.shadow.setPosition(f.x, f.y).setDepth(f.y - 1);
-    this.moveKelvin(dt);
+    for (const w of this.workers) {
+      this.thinkWorker(w);
+      const moving = this.stepMover(w, dt, 26);
+      w.setDepth(w.y);
+      const bob = moving ? Math.abs(Math.sin(w.bob / 90)) * 1.5 : 0;
+      w.tag.setPosition(w.x, w.y - 16 - bob).setDepth(4400);
+      if (moving && Math.floor((w.bob - dt) / 250) !== Math.floor(w.bob / 250)) this.dust.explode(1, w.x, w.y);
+      w.setAlpha(w.busyUntil > this.time.now ? .75 : 1);
+    }
+    for (const c of this.critters) {
+      if (!c.path || !c.path.length) { if (t > c.next) { const [hx, hy] = c.home; this.sendTo(c, [hx + Phaser.Math.Between(-2, 2), hy + Phaser.Math.Between(-1, 1)]); c.next = t + Phaser.Math.Between(2000, 6000); } }
+      this.stepMover(c, dt, 8); c.setDepth(c.y);
+    }
+    this.updateKelvin(dt);
 
-    // day / night colour
     const fr = dayFrac(), cam = this.cameras.main;
     let col = 0x000000, a = 0;
-    if (fr >= CFG.nightStartsAt) { col = 0x18225a; a = .5; }
-    else if (fr >= CFG.duskStartsAt) { const k = (fr - CFG.duskStartsAt) / (CFG.nightStartsAt - CFG.duskStartsAt); col = 0xff8a3c; a = .22 * k; }
-    else if (fr < .04) { col = 0x18225a; a = .5 * (1 - fr / .04); }
+    if (fr >= CFG.nightStartsAt) { col = 0x18225a; a = .45; }
+    else if (fr >= CFG.duskStartsAt) { col = 0xff8a3c; a = .2 * (fr - CFG.duskStartsAt) / (CFG.nightStartsAt - CFG.duskStartsAt); }
+    else if (fr < .04) { col = 0x18225a; a = .45 * (1 - fr / .04); }
     this.tint.setFillStyle(col, a).setSize(cam.width, cam.height);
     const lampA = fr >= CFG.nightStartsAt ? .85 : fr >= CFG.duskStartsAt ? .4 : fr < .04 ? .85 * (1 - fr / .04) : 0;
     for (const g of this.lamps) g.setAlpha(lampA * (.9 + .1 * Math.sin(t / 200)));
@@ -426,15 +482,15 @@ class Farm extends Phaser.Scene {
 // ---------- boot ----------
 (async () => {
   try { await document.fonts.load('8px "Press Start 2P"'); } catch (e) {}
+  if (q.has('reset')) wipe();
   S = load(Date.now());
-  if (q.has('reset')) { wipe(); S = load(Date.now()); }
   const el = document.getElementById('game');
-  // a hidden page or iframe has no size yet; WebGL can't start at 0 x 0, so wait until it's visible
-  while (!el.clientWidth || !el.clientHeight) await new Promise(r => setTimeout(r, 200));
-  UI.initUI(document.body);
-  new Phaser.Game({
-    type: Phaser.AUTO, parent: el, backgroundColor: '#2a1f33', pixelArt: true, roundPixels: true,
-    scale: { mode: Phaser.Scale.RESIZE, width: el.clientWidth, height: el.clientHeight },
-    scene: [Farm],
+  while (!el.clientWidth || !el.clientHeight) await new Promise(r => setTimeout(r, 200));   // WebGL can't start at 0 x 0
+  let scene = null;
+  UI.initUI(document.body, a => { unlock(); if (!scene) return; if (a === 'seeds') scene.buySeeds(5); if (a === 'sell') scene.sellAll(); if (a === 'hire') scene.hire(); });
+  const game = new Phaser.Game({
+    type: Phaser.AUTO, parent: el, backgroundColor: '#2e6b34', pixelArt: true, roundPixels: true,
+    scale: { mode: Phaser.Scale.RESIZE, width: el.clientWidth, height: el.clientHeight }, scene: [Farm],
   });
+  game.events.on('ready', () => { scene = game.scene.getScene('farm'); });
 })();

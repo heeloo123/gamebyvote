@@ -1,0 +1,4 @@
+farm.png, town.png, dungeon.png: Tiny Farm, Tiny Town and Tiny Dungeon by Kenney (www.kenney.nl).
+License: Creative Commons Zero (CC0), http://creativecommons.org/publicdomain/zero/1.0/
+Free to use in personal, educational and commercial projects. Credit is not required; we credit Kenney anyway.
+kelvin.png, mochi.png: original Game By Vote characters (made with SpriteCook).

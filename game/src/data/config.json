@@ -3,117 +3,51 @@
   "dayLengthSec": 600,
   "nightStartsAt": 0.72,
   "duskStartsAt": 0.62,
-  "startCoins": 20,
-  "startSeeds": 4,
+  "startCoins": 25,
+  "startSeeds": 5,
   "seedPrice": 5,
-  "growSec": 90,
+  "growSec": 60,
+  "world": {
+    "_doc": "EHT-style: the whole farm (core 12 x 20 tiles of 16 px) fits one phone screen; a wooded border fills the rest.",
+    "tilesW": 16, "tilesH": 30, "coreX": 2, "coreY": 5, "coreW": 12, "coreH": 20
+  },
   "rarity": [
-    {
-      "id": "common",
-      "name": "Common",
-      "chance": 70,
-      "value": 8,
-      "crop": "sproutling",
-      "color": "#9ff0a0"
-    },
-    {
-      "id": "uncommon",
-      "name": "Uncommon",
-      "chance": 22,
-      "value": 15,
-      "crop": "grumbean",
-      "color": "#8ad4ff"
-    },
-    {
-      "id": "rare",
-      "name": "Rare",
-      "chance": 7,
-      "value": 40,
-      "crop": "puffcap",
-      "color": "#ff9ee0"
-    },
-    {
-      "id": "epic",
-      "name": "Epic",
-      "chance": 1,
-      "value": 150,
-      "crop": "mopkin",
-      "color": "#ffcf5c"
-    }
+    { "id": "common",   "name": "Common",   "chance": 70, "value": 8,   "crop": "gloop",   "color": "#9ff0a0" },
+    { "id": "uncommon", "name": "Uncommon", "chance": 22, "value": 15,  "crop": "batvoice","color": "#8ad4ff" },
+    { "id": "rare",     "name": "Rare",     "chance": 7,  "value": 40,  "crop": "receipt", "color": "#ff9ee0" },
+    { "id": "epic",     "name": "Epic",     "chance": 1,  "value": 150, "crop": "cfo",     "color": "#ffcf5c" }
   ],
   "mutations": [
-    {
-      "id": "gold",
-      "name": "Gold",
-      "chance": 2,
-      "mult": 5
-    },
-    {
-      "id": "rainbow",
-      "name": "Rainbow",
-      "chance": 0.5,
-      "mult": 15
-    },
-    {
-      "id": "giant",
-      "name": "Giant",
-      "chance": 3,
-      "mult": 2
-    }
+    { "id": "gold",    "name": "Gold",    "chance": 2,   "mult": 5 },
+    { "id": "rainbow", "name": "Rainbow", "chance": 0.5, "mult": 15 },
+    { "id": "giant",   "name": "Giant",   "chance": 3,   "mult": 2 }
   ],
   "crops": {
-    "sproutling": "Sproutling",
-    "grumbean": "Grumbean",
-    "puffcap": "Puffcap",
-    "mopkin": "Mopkin"
+    "_doc": "Monster crops. frame = Tiny Dungeon tile index.",
+    "gloop":    { "name": "Gloop",          "frame": 108 },
+    "batvoice": { "name": "Bat Invoice",    "frame": 120 },
+    "receipt":  { "name": "Ghost Receipt",  "frame": 121 },
+    "cfo":      { "name": "Cyclops CFO",    "frame": 109 }
+  },
+  "workers": {
+    "_doc": "Workers are named after commenters. Until real comments arrive, Mochi's made-up villagers (snack names). frames = Tiny Dungeon people.",
+    "hireBase": 30, "hireStep": 20, "max": 8,
+    "placeholderNames": ["Bao", "Kopi", "Ondeh", "Satay", "Laksa", "Tofu", "Rojak", "Milo"],
+    "frames": [85, 99, 88, 100, 86, 112, 87, 98]
   },
   "kelvin": {
-    "_doc": "One action per night. Losses are capped (1 plot or 10% of the basket) and he always leaves something worth more.",
-    "maxBillLines": 4,
-    "acts": [
-      {
-        "id": "eat",
-        "line": "Ate {n} crop from your basket",
-        "fee": "Snack fee"
-      },
-      {
-        "id": "audit",
-        "line": "Audited your plot. Reset 1 timer",
-        "fee": "Audit fee"
-      },
-      {
-        "id": "tax",
-        "line": "Charged a looking-at-me tax",
-        "fee": "{c} coins"
-      }
-    ],
-    "gifts": [
-      {
-        "id": "seeds",
-        "line": "Left {n} seeds (they look cursed)"
-      },
-      {
-        "id": "coins",
-        "line": "Overpaid you by mistake: +{c}"
-      }
-    ]
+    "_doc": "Kelvin schemes in daylight where you can see him: tap him before he finishes to fine him. Max schemes per day; each completed loss is refunded (plus a bit) on the morning bill, so he never costs you overall.",
+    "schemeEverySec": [35, 70],
+    "schemeSec": 5,
+    "maxSchemesPerDay": 3,
+    "fine": 6,
+    "maxBillLines": 6
   },
   "vote": {
     "episode": 1,
     "question": "What do I water the first seeds with?",
-    "options": [
-      "water",
-      "cola",
-      "lava"
-    ],
+    "options": ["water", "cola", "lava"],
     "closes": "2026-11-08T22:00:00+08:00",
     "winner": null
-  },
-  "world": {
-    "_doc": "Stardew-style: the farm is bigger than the screen and the camera follows the farmer. Tiles are 16 px; the view is ~7.5 tiles wide on a phone.",
-    "tilesW": 30,
-    "tilesH": 40,
-    "viewW": 120,
-    "viewH": 213
   }
 }

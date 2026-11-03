@@ -2,7 +2,7 @@
 import CFG from './data/config.json';
 
 const KEY = 'gamebyvote.save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export function fresh(now) {
   return {
@@ -11,18 +11,23 @@ export function fresh(now) {
     offset: 0,                     // ms added by sleeping (skips to morning; crops grow too)
     coins: CFG.startCoins,
     seeds: CFG.startSeeds,
-    basket: [],                    // harvested crops: {crop, rarity, mutation, value}
+    basket: [],                    // harvested monsters: {crop, rarity, mutation, value}
     plots: {},                     // "x,y" -> {plantedAt}
+    workers: [],                   // {name, frame}
     nightsDone: -1,                // last day index whose night Kelvin already worked
     pendingBill: [],               // lines for the next morning's bill
+    dayLoss: 0,                    // coin value Kelvin took since the last bill (refunded with interest)
+    billNo: 0,
     seen: {},                      // tutorial steps shown
-    stats: { harvested: 0, sold: 0 },
-    farmer: null,
+    stats: { harvested: 0, sold: 0, fines: 0 },
   };
 }
 
 function migrate(s) {
-  // v1 is the first version; future versions add fields here, e.g. if (s.v < 2) { s.newThing = ...; s.v = 2; }
+  if (s.v < 2) {                   // v0.1 -> v0.2: new one-screen farm layout; keep money, seeds and basket
+    const f = fresh(Date.now());
+    s = { ...f, coins: s.coins, seeds: s.seeds, basket: (s.basket || []).filter(c => CFG.crops[c.crop]), seen: {}, stats: { ...f.stats, ...(s.stats || {}) } };
+  }
   return s;
 }
 

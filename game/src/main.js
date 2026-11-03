@@ -19,15 +19,16 @@ const CX = WD.coreX, CY = WD.coreY;
 const L = {
   core: [CX, CY, CX + WD.coreW - 1, CY + WD.coreH - 1],
   house: [CX, CY], barn: [CX + 9, CY], stall: [CX + 4, CY + 2], crate: [CX + 7, CY + 3],
-  yard: [CX, CY + 4, CX + 11, CY + 5],
-  plotRows: [[CX + 2, CX + 6, CY + 7], [CX + 2, CX + 6, CY + 9], [CX + 2, CX + 6, CY + 11]],
-  voteRow: [CX + 8, CX + 10, CY + 7], sign: [CX + 11, CY + 7],
-  desk: [CX + 8, CY + 11], kelvinArea: [CX + 7, CY + 9, CX + 11, CY + 15],
-  lamps: [[CX + 1, CY + 6], [CX + 7, CY + 6], [CX + 11, CY + 10], [CX + 4, CY + 13]],
-  decor: [['farm', 83, CX + 3, CY + 3], ['farm', 85, CX + 8, CY + 2], ['farm', 96, CX + 8, CY + 3], ['town', 83, CX + 11, CY + 7],
-    ['town', 29, CX + 1, CY + 16], ['town', 5, CX + 10, CY + 17], ['town', 17, CX + 6, CY + 18], ['farm', 39, CX + 0, CY + 12]],
-  trees: [[CX + 0, CY + 18], [CX + 11, CY + 13]],
-  meadow: [CX + 1, CY + 14, CX + 10, CY + 19],
+  path: [CX, CX + 11, CY + 4],
+  plotRows: [[CX + 1, CX + 7, CY + 6], [CX + 1, CX + 7, CY + 8], [CX + 1, CX + 7, CY + 10]],
+  voteRow: [CX + 9, CX + 11, CY + 6], sign: [CX + 8, CY + 6],
+  desk: [CX + 9, CY + 9], kelvinArea: [CX + 8, CY + 8, CX + 11, CY + 12],
+  pasture: [CX + 1, CY + 13, CX + 7, CY + 17],
+  lamps: [[CX + 8, CY + 5], [CX + 0, CY + 12]],
+  decor: [['farm', 83, CX + 3, CY + 3], ['farm', 85, CX + 8, CY + 2], ['farm', 96, CX + 8, CY + 3], ['town', 83, CX + 8, CY + 6],
+    ['town', 29, CX + 0, CY + 19], ['town', 5, CX + 11, CY + 19], ['town', 17, CX + 9, CY + 19], ['farm', 39, CX + 0, CY + 7]],
+  trees: [[CX + 0, CY + 15]],
+  meadow: [CX + 8, CY + 13, CX + 11, CY + 18],
 };
 const key = (x, y) => x + ',' + y;
 const tc = v => v * T + T / 2;
@@ -46,7 +47,7 @@ const nightAt = d => S.epoch + (d + CFG.nightStartsAt) * DAY;
 const RAR = CFG.rarity, MUT = CFG.mutations, CROPS = CFG.crops;
 const QUOTES = ['This farm is now a cost centre.', 'Your tap has been logged.', "I've invoiced you for that.",
   'Per my last email: no.', 'Senior Accounting. Senior.', 'Fines are non-refundable. Mostly.'];
-const hireCost = () => CFG.workers.hireBase + CFG.workers.hireStep * S.workers.length;
+const hireCost = () => Math.round(CFG.workers.hireBase * CFG.workers.hireMult ** S.workers.length);
 const basketValue = () => S.basket.reduce((a, c) => a + c.value, 0);
 
 class Farm extends Phaser.Scene {
@@ -72,13 +73,14 @@ class Farm extends Phaser.Scene {
     VOTE_PLOTS.forEach(([x, y]) => this.add.image(tc(x), y * T + T - 2, 'farm', 4).setOrigin(.5, 1).setDepth(y * T + 8).setAlpha(.9));
 
     // animals, for life
-    this.critters = [[122, CX + 2, CY + 15], [122, CX + 7, CY + 17], [120 + 1, CX + 4, CY + 18]].map(([f, x, y]) => {
+    this.critters = [[122, CX + 2, CY + 15], [122, CX + 5, CY + 14], [121, CX + 4, CY + 16], [120, CX + 6, CY + 16]].map(([f, x, y]) => {
       const a = this.add.image(tc(x), y * T + T, 'farm', f).setOrigin(.5, 1); a.home = [x, y]; a.next = 0; a.target = null; return a; });
 
     // Kelvin
     this.kelvin = this.add.image(tc(CX + 10), (CY + 12) * T + T, 'kelvin').setOrigin(.5, 1);
     Object.assign(this.kelvin, { mode: 'wander', target: null, path: [], next: 0, schemeAt: this.time.now + this.nextScheme(), schemesToday: 0 });
     this.kBubble = this.add.image(0, 0, 'bang').setDepth(4500).setVisible(false);
+    this.kLabel = this.add.text(0, 0, '', { fontFamily: '"Press Start 2P"', fontSize: '6px', color: '#ffffff', backgroundColor: '#d9443a', padding: { x: 2, y: 2 }, resolution: 10 }).setOrigin(.5, 1).setDepth(4501).setVisible(false);
     this.kRing = this.add.graphics().setDepth(4500);
 
     // workers
@@ -131,7 +133,7 @@ class Farm extends Phaser.Scene {
     if (tx >= L.stall[0] && tx <= L.stall[0] + 1 && ty >= L.stall[1] && ty <= L.stall[1] + 1) return this.buySeeds(1);
     if (tx >= L.house[0] && tx <= L.house[0] + 2 && ty >= L.house[1] && ty <= L.house[1] + 3) return this.askSleep();
     const c = this.critters.find(c => Math.abs(wx - c.x) < 9 && wy > c.y - 14 && wy < c.y + 2);
-    if (c) { sfx.tap(); this.hop(c); return UI.toast(c.frame.name == 122 ? 'Bawk.' : 'Moo. (Kelvin has invoiced this cow.)'); }
+    if (c) { sfx.tap(); this.hop(c); return UI.toast({ 122: 'Bawk.', 121: 'Moo. (Kelvin has invoiced this cow.)', 120: 'Baa. It owes Kelvin wool.' }[c.frame.name] || '…'); }
     if (tx >= L.desk[0] && tx <= L.desk[0] + 1 && ty === L.desk[1]) return UI.toast("Kelvin's desk. Everything is labelled 'MINE'.");
   }
 
@@ -160,7 +162,8 @@ class Farm extends Phaser.Scene {
   harvest(x, y, worker) {
     delete S.plots[key(x, y)];
     const roll = list => { let r = Math.random() * 100; for (const it of list) if ((r -= it.chance) < 0) return it; return null; };
-    const rar = roll(RAR) || RAR[0], mut = roll(MUT), tier = RAR.indexOf(rar);
+    const mm = worker ? 1 : CFG.manualMutationMult;                 // your own taps find mutations more often
+    const rar = roll(RAR) || RAR[0], mut = roll(MUT.map(m => ({ ...m, chance: m.chance * mm }))), tier = RAR.indexOf(rar);
     const value = Math.round(rar.value * (mut ? mut.mult : 1));
     const crop = { crop: rar.crop, rarity: rar.id, mutation: mut ? mut.id : null, value };
     S.basket.push(crop); S.stats.harvested++; save(S);
@@ -202,16 +205,25 @@ class Farm extends Phaser.Scene {
   // ---------- economy ----------
   sellAll(by) {
     if (!S.basket.length) { if (!by) { sfx.nope(); UI.toast('Basket is empty.<br>Harvest some monsters first.'); } return; }
-    const total = basketValue(); S.coins += total; S.stats.sold += S.basket.length; S.basket = []; save(S); this.hud(); sfx.coin();
+    const total = basketValue(); S.coins += total; this.earn(total); S.stats.sold += S.basket.length; S.basket = []; save(S); this.hud(); sfx.coin();
     this.popup(this.crate.x, this.crate.y - 16, '+' + total); this.sparkle.explode(14, this.crate.x, this.crate.y - 8);
     if (!by) this.tutorial('sold');
   }
 
-  buySeeds(n) {
+  earn(n) {
+    S.stats.earned = (S.stats.earned || 0) + n;
+    if (!S.goalDone && S.stats.earned >= CFG.goal.earn) {
+      S.goalDone = true; sfx.morning(); this.cameras.main.flash(400, 255, 230, 140); this.sparkle.explode(60, this.kelvin.x, this.kelvin.y - 20);
+      UI.stamp('FARM BOUGHT BACK!', '#2e8a3a');
+      UI.toast('You earned ● ' + CFG.goal.earn + '. The farm is yours again.<br>Kelvin has filed an appeal. Senior Accounting is involved.', 5000);
+    }
+  }
+
+  buySeeds(n, by) {
     const cost = n * CFG.seedPrice;
-    if (S.coins < cost) { sfx.nope(); return UI.toast(`Seeds cost ● ${CFG.seedPrice} each.<br>Sell monsters at the crate.`); }
+    if (S.coins < cost) { if (!by) { sfx.nope(); UI.toast(`Seeds cost ● ${CFG.seedPrice} each.<br>Sell monsters at the crate.`); } return; }
     S.coins -= cost; S.seeds += n; save(S); this.hud(); sfx.buy();
-    this.popup(tc(L.stall[0]) + 8, L.stall[1] * T, '+' + n + ' SEED' + (n > 1 ? 'S' : ''));
+    this.popup(tc(L.stall[0]) + 8, L.stall[1] * T, '+' + n + ' SEED' + (n > 1 ? 'S' : '') + (by ? ' (' + by.info.name + ')' : ''));
   }
 
   hire() {
@@ -236,7 +248,7 @@ class Farm extends Phaser.Scene {
     const [x0, y0, x1, y1] = L.meadow, tx = x0 + (i * 3) % (x1 - x0), ty = y0 + 1 + (i % 3);
     const w = this.add.image(tc(tx), ty * T + T, 'dungeon', data.frame).setOrigin(.5, 1);
     w.info = data; w.path = []; w.job = null; w.busyUntil = 0; w.next = 0;
-    w.tag = this.add.text(w.x, w.y - 17, data.name, { fontFamily: '"Press Start 2P"', fontSize: '5px', color: '#ffffff', stroke: INK, strokeThickness: 2, resolution: 10 }).setOrigin(.5, 1);
+    w.tag = this.add.text(w.x, w.y - 17, data.name, { fontFamily: '"Press Start 2P"', fontSize: '6px', color: '#ffffff', stroke: INK, strokeThickness: 2, resolution: 10 }).setOrigin(.5, 1);
     this.workers.push(w); return w;
   }
 
@@ -281,6 +293,12 @@ class Farm extends Phaser.Scene {
       if (!this.sendTo(w, [x, y + 1], () => { this.hop(w); const did = this.usePlot(x, y, w); if (did) w.info.jobs = (w.info.jobs || 0) + 1; w.job = null; w.next = this.time.now + 700; })) w.job = null;
       return;
     }
+    const anyEmpty = PLOTS.some(p => !S.plots[key(...p)]);
+    if (S.seeds === 0 && anyEmpty && S.coins >= CFG.seedPrice && !this.workers.some(o => o.job === 'buy')) {
+      w.job = 'buy'; this.sendTo(w, [L.stall[0], L.stall[1] + 2], () => { this.hop(w);
+        this.buySeeds(Math.min(5, Math.floor(S.coins / CFG.seedPrice)), w); w.info.jobs = (w.info.jobs || 0) + 1; w.job = null; });
+      return;
+    }
     if (S.basket.length >= 8 && !this.workers.some(o => o.job === 'sell')) {
       w.job = 'sell'; this.sendTo(w, [L.crate[0], L.crate[1] + 1], () => { this.hop(w); this.sellAll(w); w.info.jobs = (w.info.jobs || 0) + 1; w.job = null; });
       return;
@@ -305,7 +323,13 @@ class Farm extends Phaser.Scene {
     const k = this.kelvin; this.hop(k);
     if (k.mode === 'approach' || k.mode === 'scheme') {
       S.coins += CFG.kelvin.fine; S.stats.fines++; save(S); this.hud(); sfx.coin(); sfx.beepClick();
-      this.popup(k.x, k.y - 30, 'FINED +' + CFG.kelvin.fine); this.sparkle.explode(14, k.x, k.y - 12);
+      // hit-stop, zoom punch, stamp
+      this.tweens.timeScale = .15; this.time.delayedCall(180, () => { this.tweens.timeScale = 1; });
+      const cam = this.cameras.main, z = cam.zoom; cam.zoomTo(z * 1.12, 90); this.time.delayedCall(260, () => cam.zoomTo(z, 220));
+      cam.shake(180, .01);
+      this.tweens.add({ targets: k, angle: { from: -14, to: 14 }, duration: 60, yoyo: true, repeat: 4, onComplete: () => k.setAngle(0) });
+      this.popup(k.x, k.y - 30, '+' + CFG.kelvin.fine); this.sparkle.explode(26, k.x, k.y - 12);
+      UI.stamp('FINED +' + CFG.kelvin.fine);
       UI.toast('Caught him! Kelvin pays a fine.<br>He is furious about this.');
       this.endScheme('sulk'); this.tutorial('fined'); return;
     }
@@ -334,7 +358,7 @@ class Farm extends Phaser.Scene {
     const k = this.kelvin; k.mode = mode; k.path = []; k.then = null; k.kind = null; k.victim = null;
     k.schemeAt = this.time.now + this.nextScheme() + (mode === 'sulk' ? 3000 : 0);
     if (mode === 'sulk') this.time.delayedCall(2500, () => { if (k.mode === 'sulk') k.mode = 'wander'; });
-    this.kBubble.setVisible(false); this.kRing.clear();
+    this.kBubble.setVisible(false); this.kLabel.setVisible(false); this.kRing.clear();
   }
 
   completeScheme() {
@@ -358,11 +382,14 @@ class Farm extends Phaser.Scene {
       }
     }
     this.stepMover(k, dt, k.mode === 'approach' ? 22 : 10);
-    this.kBubble.setVisible(k.mode === 'approach' || k.mode === 'scheme').setPosition(k.x, k.y - 32 + Math.sin(this.time.now / 120) * 1.5);
+    const plotting = k.mode === 'approach' || k.mode === 'scheme';
+    this.kBubble.setVisible(plotting).setPosition(k.x + 12, k.y - 30 + Math.sin(this.time.now / 120) * 1.5);
+    this.kLabel.setVisible(plotting).setText(k.label ? k.label + '?' : '').setPosition(k.x, k.y - 26);
     this.kRing.clear();
+    if (plotting) this.kRing.lineStyle(1, 0xff5a4a, .6).strokeCircle(k.x, k.y - 11, 15 + Math.sin(this.time.now / 90));
     if (k.mode === 'scheme') {
       const f = 1 - (k.schemeEnd - this.time.now) / (CFG.kelvin.schemeSec * 1000);
-      this.kRing.lineStyle(2, 0xff5a4a, 1).beginPath().arc(k.x, k.y - 12, 15, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2).strokePath();
+      this.kRing.lineStyle(3, 0xff3a2a, 1).beginPath().arc(k.x, k.y - 11, 15, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2).strokePath();
       if (f >= 1) this.completeScheme();
     }
     k.setDepth(k.y);
@@ -396,17 +423,18 @@ class Farm extends Phaser.Scene {
     if (B.length > CFG.kelvin.maxBillLines) B.splice(0, B.length - CFG.kelvin.maxBillLines);
   }
 
+  // The morning bill slides down as a slip (it doesn't block play) and rolls itself up after a few seconds.
   showBill() {
-    if (!S.pendingBill.length || UI.modalOpen) return this.tutorial();
-    const refund = S.dayLoss + 5;
-    const lines = [...S.pendingBill, { text: 'Refund (he miscounted again)', amt: `+● ${refund}`, kind: 'plus' }];
+    if (!S.pendingBill.length) return this.tutorial();
+    const refund = Math.round(S.dayLoss * CFG.kelvin.refundPct);
+    const lines = [...S.pendingBill];
+    if (refund) lines.push({ text: 'Partial refund (he miscounted)', amt: `+● ${refund}`, kind: 'plus' });
     S.billNo = (S.billNo || 0) + 1; sfx.beepClick();
-    UI.open('bill', `<h1>INVOICE #${String(S.billNo).padStart(3, '0')}</h1><div class="sub">FROM: KELVIN, ACCOUNTING</div>
-      ${lines.map(l => `<div class="ln"><span>${l.text}</span><b class="${l.kind}">${l.amt}</b></div>`).join('')}
-      <hr><div class="ln"><span>NET</span><b class="plus">YOU'RE STILL UP</b></div><div class="sub" style="margin:8px 0 0">He is furious about this.</div>`,
-      [{ id: 'ok', label: 'PAY NOTHING' }]).then(() => {
-        S.coins += refund; S.pendingBill = []; S.dayLoss = 0; save(S); this.hud(); this.popup(this.kelvin.x, this.kelvin.y - 30, '+' + refund); this.tutorial();
-      });
+    S.coins += refund; S.pendingBill = []; S.dayLoss = 0; save(S); this.hud();
+    UI.bill(`<b>INVOICE #${String(S.billNo).padStart(3, '0')}</b> · FROM KELVIN, ACCOUNTING`,
+      lines.map(l => `<div class="ln"><span>${l.text}</span><b class="${l.kind}">${l.amt}</b></div>`).join('') +
+      `<div class="ln" style="margin-top:4px"><span>Catch him next time: fines are ● ${CFG.kelvin.fine}</span></div>`);
+    this.tutorial();
   }
 
   askSleep() {
@@ -432,7 +460,8 @@ class Farm extends Phaser.Scene {
   }
 
   hud() {
-    UI.setHud({ day: dayIndex() + 1, night: isNight(), coins: S.coins, seeds: S.seeds, basket: S.basket.length,
+    UI.setHud({ day: dayIndex() + 1, night: isNight(), coins: S.coins, seeds: S.seeds, basket: S.basket.length, earned: S.stats.earned || 0, goal: CFG.goal.earn, goalDone: S.goalDone,
+      needSeeds: S.seeds === 0 && PLOTS.some(p => !S.plots[key(...p)]),
       seedCost: CFG.seedPrice * 5, sellValue: basketValue(), hireCost: hireCost(), canHire: S.workers.length < CFG.workers.max });
   }
 
@@ -444,6 +473,7 @@ class Farm extends Phaser.Scene {
     else if (ev === 'fined' && !s.fined) { s.fined = 1; }
     else if (!ev) {
       if (!s.plant) UI.setHint('Tap the soil to plant a seed 🌱');
+      else if (S.seeds === 0 && !Object.keys(S.plots).length && !S.workers.length) UI.setHint('Out of seeds: tap +5 SEEDS below.');
       else if (!S.workers.length && s.harvest && S.coins >= hireCost()) UI.setHint('You can afford a worker. Tap HIRE!');
       else UI.setHint(null);
     }
@@ -457,12 +487,13 @@ class Farm extends Phaser.Scene {
       const moving = this.stepMover(w, dt, 26);
       w.setDepth(w.y);
       const bob = moving ? Math.abs(Math.sin(w.bob / 90)) * 1.5 : 0;
-      w.tag.setPosition(w.x, w.y - 16 - bob).setDepth(4400);
+      const crowd = this.workers.slice(0, this.workers.indexOf(w)).filter(o => Math.abs(o.x - w.x) < 26 && Math.abs(o.y - w.y) < 12).length;
+      w.tag.setPosition(w.x, w.y - 16 - bob - crowd * 8).setDepth(4400 + crowd);
       if (moving && Math.floor((w.bob - dt) / 250) !== Math.floor(w.bob / 250)) this.dust.explode(1, w.x, w.y);
       w.setAlpha(w.busyUntil > this.time.now ? .75 : 1);
     }
     for (const c of this.critters) {
-      if (!c.path || !c.path.length) { if (t > c.next) { const [hx, hy] = c.home; this.sendTo(c, [hx + Phaser.Math.Between(-2, 2), hy + Phaser.Math.Between(-1, 1)]); c.next = t + Phaser.Math.Between(2000, 6000); } }
+      if (!c.path || !c.path.length) { if (t > c.next) { const [x0, y0, x1, y1] = L.pasture; this.sendTo(c, [Phaser.Math.Between(x0 + 1, x1 - 1), Phaser.Math.Between(y0 + 1, y1 - 1)]); c.next = t + Phaser.Math.Between(2000, 6000); } }
       this.stepMover(c, dt, 8); c.setDepth(c.y);
     }
     this.updateKelvin(dt);
@@ -475,7 +506,6 @@ class Farm extends Phaser.Scene {
     this.tint.setFillStyle(col, a).setSize(cam.width, cam.height);
     const lampA = fr >= CFG.nightStartsAt ? .85 : fr >= CFG.duskStartsAt ? .4 : fr < .04 ? .85 * (1 - fr / .04) : 0;
     for (const g of this.lamps) g.setAlpha(lampA * (.9 + .1 * Math.sin(t / 200)));
-    this.kelvin.setTint(fr >= CFG.nightStartsAt ? 0xb0a0ff : 0xffffff);
   }
 }
 

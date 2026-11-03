@@ -9,45 +9,138 @@
   "growSec": 60,
   "world": {
     "_doc": "EHT-style: the whole farm (core 12 x 20 tiles of 16 px) fits one phone screen; a wooded border fills the rest.",
-    "tilesW": 16, "tilesH": 30, "coreX": 2, "coreY": 5, "coreW": 12, "coreH": 20
+    "tilesW": 16,
+    "tilesH": 30,
+    "coreX": 2,
+    "coreY": 5,
+    "coreW": 12,
+    "coreH": 20
   },
   "rarity": [
-    { "id": "common",   "name": "Common",   "chance": 70, "value": 8,   "crop": "gloop",   "color": "#9ff0a0" },
-    { "id": "uncommon", "name": "Uncommon", "chance": 22, "value": 15,  "crop": "batvoice","color": "#8ad4ff" },
-    { "id": "rare",     "name": "Rare",     "chance": 7,  "value": 40,  "crop": "receipt", "color": "#ff9ee0" },
-    { "id": "epic",     "name": "Epic",     "chance": 1,  "value": 150, "crop": "cfo",     "color": "#ffcf5c" }
+    {
+      "id": "common",
+      "name": "Common",
+      "chance": 70,
+      "value": 8,
+      "crop": "gloop",
+      "color": "#9ff0a0"
+    },
+    {
+      "id": "uncommon",
+      "name": "Uncommon",
+      "chance": 22,
+      "value": 15,
+      "crop": "batvoice",
+      "color": "#8ad4ff"
+    },
+    {
+      "id": "rare",
+      "name": "Rare",
+      "chance": 7,
+      "value": 40,
+      "crop": "receipt",
+      "color": "#ff9ee0"
+    },
+    {
+      "id": "epic",
+      "name": "Epic",
+      "chance": 1,
+      "value": 150,
+      "crop": "cfo",
+      "color": "#ffcf5c"
+    }
   ],
   "mutations": [
-    { "id": "gold",    "name": "Gold",    "chance": 2,   "mult": 5 },
-    { "id": "rainbow", "name": "Rainbow", "chance": 0.5, "mult": 15 },
-    { "id": "giant",   "name": "Giant",   "chance": 3,   "mult": 2 }
+    {
+      "id": "gold",
+      "name": "Gold",
+      "chance": 2,
+      "mult": 5
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "chance": 0.5,
+      "mult": 15
+    },
+    {
+      "id": "giant",
+      "name": "Giant",
+      "chance": 3,
+      "mult": 2
+    }
   ],
   "crops": {
     "_doc": "Monster crops. frame = Tiny Dungeon tile index.",
-    "gloop":    { "name": "Gloop",          "frame": 108 },
-    "batvoice": { "name": "Bat Invoice",    "frame": 120 },
-    "receipt":  { "name": "Ghost Receipt",  "frame": 121 },
-    "cfo":      { "name": "Cyclops CFO",    "frame": 109 }
+    "gloop": {
+      "name": "Gloop",
+      "frame": 108
+    },
+    "batvoice": {
+      "name": "Bat Invoice",
+      "frame": 120
+    },
+    "receipt": {
+      "name": "Ghost Receipt",
+      "frame": 121
+    },
+    "cfo": {
+      "name": "Cyclops CFO",
+      "frame": 109
+    }
   },
   "workers": {
-    "_doc": "Workers are named after commenters. Until real comments arrive, Mochi's made-up villagers (snack names). frames = Tiny Dungeon people.",
-    "hireBase": 30, "hireStep": 20, "max": 8,
-    "placeholderNames": ["Bao", "Kopi", "Ondeh", "Satay", "Laksa", "Tofu", "Rojak", "Milo"],
-    "frames": [85, 99, 88, 100, 86, 112, 87, 98]
+    "_doc": "Workers are named after commenters. Until real comments arrive, Mochi's made-up villagers (snack names). frames = Tiny Dungeon people. Hire cost = hireBase x hireMult^n. Workers buy seeds themselves when the farm runs out.",
+    "hireBase": 30,
+    "max": 4,
+    "placeholderNames": [
+      "Bao",
+      "Kopi",
+      "Ondeh",
+      "Satay",
+      "Laksa",
+      "Tofu",
+      "Rojak",
+      "Milo"
+    ],
+    "frames": [
+      85,
+      99,
+      88,
+      100,
+      86,
+      112,
+      87,
+      98
+    ],
+    "hireMult": 1.6
   },
   "kelvin": {
-    "_doc": "Kelvin schemes in daylight where you can see him: tap him before he finishes to fine him. Max schemes per day; each completed loss is refunded (plus a bit) on the morning bill, so he never costs you overall.",
-    "schemeEverySec": [35, 70],
+    "_doc": "Kelvin schemes in daylight where you can see him: tap him before he finishes to fine him. Max schemes per day. Losses happen at once; the morning bill refunds only part of them (refundPct), so catching him matters. Losses stay small and capped.",
+    "schemeEverySec": [
+      35,
+      70
+    ],
     "schemeSec": 5,
     "maxSchemesPerDay": 3,
-    "fine": 6,
-    "maxBillLines": 6
+    "fine": 10,
+    "maxBillLines": 6,
+    "refundPct": 0.5
   },
   "vote": {
     "episode": 1,
     "question": "What do I water the first seeds with?",
-    "options": ["water", "cola", "lava"],
+    "options": [
+      "water",
+      "cola",
+      "lava"
+    ],
     "closes": "2026-11-08T22:00:00+08:00",
     "winner": null
+  },
+  "manualMutationMult": 2,
+  "goal": {
+    "_doc": "First goal: earn this many coins in total to buy the farm back from Kelvin (his first bill said TOTAL: YOUR FARM).",
+    "earn": 1000
   }
 }

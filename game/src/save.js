@@ -19,7 +19,8 @@ export function fresh(now) {
     dayLoss: 0,                    // coin value Kelvin took since the last bill (refunded with interest)
     billNo: 0,
     seen: {},                      // tutorial steps shown
-    stats: { harvested: 0, sold: 0, fines: 0 },
+    stats: { harvested: 0, sold: 0, fines: 0, earned: 0 },
+    goalDone: false,
   };
 }
 

@@ -1,0 +1,61 @@
+{
+ "title": "Kelvin's In-Tray test clip",
+ "durationMs": 21500,
+ "storyTag": "@gamebyvote",
+ "screens": [
+  {
+   "id": "tray",
+   "src": "../play2/?bot=1"
+  }
+ ],
+ "startScreen": "tray",
+ "captions": [
+  {
+   "id": "c1",
+   "html": "Don't overflow Kelvin's tray 😰",
+   "top": 560
+  },
+  {
+   "id": "c2",
+   "html": "Beat my claim 👇",
+   "top": 560,
+   "yellow": true
+  }
+ ],
+ "outro": {
+  "big": "",
+  "sub": "",
+  "options": []
+ },
+ "timeline": [
+  [
+   0,
+   "show",
+   "c1"
+  ],
+  [
+   2600,
+   "hide",
+   "c1"
+  ],
+  [
+   19200,
+   "show",
+   "c2"
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.2,
+   "text": "Don't let Kelvin's tray overflow.",
+   "speed": 1.1
+  },
+  {
+   "t": 19.3,
+   "text": "Beat my claim. Link in bio.",
+   "speed": 1.1
+  }
+ ],
+ "sfx": []
+}

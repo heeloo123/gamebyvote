@@ -1,0 +1,8 @@
+{
+  "name": "gamebyvote-intray",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": { "matter-js": "^0.20.0" },
+  "devDependencies": { "vite": "^6.0.0" }
+}

@@ -1,0 +1,46 @@
+{
+ "title": "Office Life test clip",
+ "durationMs": 24000,
+ "storyTag": "@gamebyvote",
+ "screens": [
+  {
+   "id": "life",
+   "src": "../play3/?bot=1"
+  }
+ ],
+ "startScreen": "life",
+ "captions": [
+  {
+   "id": "c1",
+   "html": "You choose my office life 👇",
+   "top": 540,
+   "yellow": true
+  }
+ ],
+ "outro": {
+  "big": "",
+  "sub": "",
+  "options": []
+ },
+ "timeline": [
+  [
+   21000,
+   "show",
+   "c1"
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.2,
+   "text": "Day one at Kelvin and Co.",
+   "speed": 1.1
+  },
+  {
+   "t": 21.2,
+   "text": "Comment what I do next.",
+   "speed": 1.1
+  }
+ ],
+ "sfx": []
+}

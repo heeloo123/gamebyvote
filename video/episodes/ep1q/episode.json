@@ -1,43 +1,51 @@
 {
- "title": "Would you pay this claim? (Claim Rejected)",
- "durationMs": 14000,
+ "title": "Kelvin claimed an ang bao for himself (Claim Rejected)",
+ "durationMs": 15000,
  "storyTag": "@gamebyvote",
  "screens": [
   {
+   "id": "k",
+   "src": "../play/?scene=1&focus=1&ids=c44&rules=angbao"
+  },
+  {
    "id": "desk",
-   "src": "../play/?scene=1&ids=c46,c20,c44&rules=pic,food,grab,angbao"
+   "src": "../play/?scene=1&focus=1&ids=c46,c20,c44&rules=food,grab"
+  },
+  {
+   "id": "k2",
+   "src": "../play/?scene=1&focus=1&ids=c44&rules=angbao"
   }
  ],
- "startScreen": "desk",
+ "startScreen": "k",
  "captions": [
   {
    "id": "q1",
-   "html": "Would you pay this? ☕×14",
-   "top": 30
-  },
-  {
-   "id": "a1",
-   "html": "✔ Legit. Under $20.",
+   "html": "My boss claimed THIS 🧧",
    "top": 30
   },
   {
    "id": "q2",
-   "html": "And this one? 🚕",
+   "html": "Easy one first ☕×14",
    "top": 30
   },
   {
-   "id": "a2",
-   "html": "✖ One minute early.",
+   "id": "a1",
+   "html": "✔ Legit. Under $20",
    "top": 30
   },
   {
    "id": "q3",
-   "html": "Kelvin's claim 👀",
+   "html": "🚕 at 9:59 PM?",
+   "top": 30
+  },
+  {
+   "id": "a2",
+   "html": "✖ 1 minute early",
    "top": 30
   },
   {
    "id": "q4",
-   "html": "STAMP or SHRED? 👇",
+   "html": "So… Kelvin's? 👇",
    "top": 30,
    "yellow": true
   }
@@ -54,62 +62,72 @@
    "q1"
   ],
   [
-   2700,
+   3000,
    "hide",
    "q1"
   ],
   [
-   2700,
+   3000,
+   "screen",
+   "desk"
+  ],
+  [
+   3100,
+   "show",
+   "q2"
+  ],
+  [
+   5600,
+   "hide",
+   "q2"
+  ],
+  [
+   5600,
    "cue",
    "desk:approve"
   ],
   [
-   2800,
+   5700,
    "show",
    "a1"
   ],
   [
-   4700,
+   7400,
    "hide",
    "a1"
   ],
   [
-   4900,
+   7500,
    "show",
-   "q2"
+   "q3"
   ],
   [
-   7300,
+   9300,
    "hide",
-   "q2"
+   "q3"
   ],
   [
-   7300,
+   9300,
    "cue",
    "desk:reject"
   ],
   [
-   7400,
+   9400,
    "show",
    "a2"
   ],
   [
-   9700,
+   11100,
    "hide",
    "a2"
   ],
   [
-   9900,
-   "show",
-   "q3"
+   11200,
+   "screen",
+   "k2"
   ],
   [
-   11600,
-   "hide",
-   "q3"
-  ],
-  [
-   11700,
+   11300,
    "show",
    "q4"
   ]
@@ -118,35 +136,45 @@
  "voice": [
   {
    "t": 0.15,
-   "text": "Fourteen kopi. Nineteen sixty. Pay, or shred?",
-   "speed": 1.1
-  },
-  {
-   "t": 2.9,
-   "text": "Legit. Under twenty dollars.",
-   "speed": 1.1
-  },
-  {
-   "t": 5.0,
-   "text": "Grab to office. Nine fifty nine PM.",
-   "speed": 1.1
-  },
-  {
-   "t": 7.5,
-   "text": "Shred. One minute early.",
-   "speed": 1.1
-  },
-  {
-   "t": 9.9,
    "text": "Ang bao. For me. From the company.",
    "voice": "bm_george",
    "speed": 0.9
   },
   {
-   "t": 12.0,
-   "text": "Stamp, or shred? Comment.",
-   "speed": 1.05
+   "t": 2.0,
+   "text": "Would you approve it?",
+   "speed": 1.1
+  },
+  {
+   "t": 3.1,
+   "text": "Easy one first. Fourteen kopi, nineteen sixty.",
+   "speed": 1.15
+  },
+  {
+   "t": 5.8,
+   "text": "Legit.",
+   "speed": 1.1
+  },
+  {
+   "t": 7.5,
+   "text": "Grab at nine fifty nine PM.",
+   "speed": 1.15
+  },
+  {
+   "t": 9.4,
+   "text": "Shred. One minute early.",
+   "speed": 1.15
+  },
+  {
+   "t": 11.3,
+   "text": "So. Kelvin's ang bao. Stamp, or shred? Comment.",
+   "speed": 1.1
   }
  ],
- "sfx": []
+ "sfx": [
+  {
+   "t": 0.05,
+   "sound": "beepclick"
+  }
+ ]
 }

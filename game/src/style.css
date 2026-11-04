@@ -149,3 +149,9 @@ body{font-family:"P",monospace;color:#2b1d3a}
 .hz-lava{box-shadow:0 0 0 3px #ff7a2a,0 0 24px 6px #ff7a2acc,0 6px 0 #0006;background:linear-gradient(transparent 70%,#ffd06088),#f6f3e8}
 .fuse{position:absolute;left:0;bottom:8px;height:6px;background:linear-gradient(90deg,#ff7a2a,#ffd060);width:100%;animation:fuse 5s linear forwards}
 @keyframes fuse{to{width:0}}
+/* Reels: ?scene=1&focus=1 hides the boards so the receipt and Kelvin fill the frame */
+body.focus #meters,body.focus #rules,body.focus #shelf,body.focus #scamrow,body.focus .susbar{display:none}
+body.focus #kel{padding-top:44px}
+body.focus .pile span{font-size:50px}
+body.focus #toast{display:none}
+body.focus .scampaper{height:70%}

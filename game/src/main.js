@@ -373,6 +373,7 @@ async function scamMode() {
   $('#shelf').onclick = e => { const b = e.target.closest('button'); if (b) addItem(b.dataset.id); };
   $('.clr', bottom).onclick = () => { pile = []; drawPile(); };
   $('.go', bottom).onclick = submitScam;
+  if (SCENE && q.get('pile')) pile = q.get('pile').split(',').filter(id => ITEM[id]);
   drawPile();
 }
 function pileStats() {
@@ -382,7 +383,7 @@ function pileStats() {
 function drawPile() {
   const el = $('#pile'); if (!el) return;
   const st = pileStats(), r = rng('pile' + pile.length);
-  el.innerHTML = pile.map((id, n) => `<span style="left:calc(50% - 20px + ${Math.round((r() - .5) * 60)}px);bottom:${n * 26}px;transform:rotate(${Math.round((r() - .5) * 40)}deg)">${ITEM[id].pic}</span>`).join('');
+  el.innerHTML = pile.map((id, n) => `<span style="left:calc(50% - 20px + ${Math.round((r() - .5) * 60)}px);bottom:${n * (document.body.classList.contains("focus") ? 38 : 26)}px;transform:rotate(${Math.round((r() - .5) * 40)}deg)">${ITEM[id].pic}</span>`).join('');
   el.className = 'pile ' + (st.weight > SCAM.toppleWeight * .75 ? 'w3' : st.weight > SCAM.toppleWeight * .45 ? 'w2' : pile.length ? 'w1' : '');
   $('#tot').textContent = money(st.total); $('#pct').textContent = Math.round(st.p * 100) + '%'; $('#susb').style.width = st.p * 100 + '%';
 }
@@ -444,6 +445,7 @@ addEventListener('message', e => {           // Reel beats from video/composer.h
   if (b === 'reject') decide(false); else if (b === 'approve') decide(true); else if (b === 'face') stampKelvin(); else if (b === 'end') endShift();
   else if (b === 'scam') scamMode(); else if (b === 'submit') submitScam(); else if (b && b.startsWith('add-')) addItem(b.slice(4));
 });
-if (SCENE) document.body.style.zoom = Math.max(1, innerWidth / 390);
+if (SCENE && q.has('focus')) document.body.classList.add('focus');      // Reels: zoom in, hide the boards
+if (SCENE) document.body.style.zoom = Math.max(1, innerWidth / (q.has('focus') ? 280 : 390));
 window.GBV = { get state() { return S; }, nextDay: () => { dayOffset++; boot(); }, current: () => cur, decide, stampKelvin, addItem, submitScam, wipe: () => { wipe(); location.reload(); } };
 (async () => { try { await document.fonts.load('10px "P"'); } catch (e) {} boot(); })();

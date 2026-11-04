@@ -1,18 +1,27 @@
 {
- "title": "Scam mode: sneaking a goat past Kelvin (Claim Rejected)",
- "durationMs": 15000,
+ "title": "I tried to expense a goat (Claim Rejected scam mode)",
+ "durationMs": 16000,
  "storyTag": "@gamebyvote",
  "screens": [
   {
+   "id": "hook",
+   "src": "../play/?scene=1&focus=1&scam=1&pile=kopi,genting,goat,massage"
+  },
+  {
    "id": "desk",
-   "src": "../play/?scene=1&scam=1"
+   "src": "../play/?scene=1&focus=1&scam=1"
   }
  ],
- "startScreen": "desk",
+ "startScreen": "hook",
  "captions": [
   {
+   "id": "h1",
+   "html": "How did we get here? 🐐",
+   "top": 30
+  },
+  {
    "id": "s1",
-   "html": "POV: unpaid overtime 🌙",
+   "html": "Unpaid overtime 🌙",
    "top": 30
   },
   {
@@ -26,18 +35,13 @@
    "top": 30
   },
   {
-   "id": "s4",
-   "html": "oh no",
-   "top": 30
-  },
-  {
    "id": "s5",
    "html": "Smaller. Sneakier.",
    "top": 30
   },
   {
    "id": "s6",
-   "html": "Caught or …Fine? 👇",
+   "html": "Will Kelvin catch me? 👇",
    "top": 30,
    "yellow": true
   }
@@ -49,102 +53,112 @@
  },
  "timeline": [
   [
-   0,
+   200,
+   "cue",
+   "hook:add-lava"
+  ],
+  [
+   1400,
+   "show",
+   "h1"
+  ],
+  [
+   3200,
+   "hide",
+   "h1"
+  ],
+  [
+   3200,
+   "screen",
+   "desk"
+  ],
+  [
+   3300,
    "show",
    "s1"
   ],
   [
-   900,
+   3600,
    "cue",
    "desk:add-kopi"
   ],
   [
-   1700,
+   4200,
    "cue",
    "desk:add-genting"
   ],
   [
-   2400,
+   4800,
    "hide",
    "s1"
   ],
   [
-   2500,
+   4900,
    "show",
    "s2"
   ],
   [
-   2700,
+   4900,
    "cue",
    "desk:add-goat"
   ],
   [
-   3700,
+   5900,
    "cue",
    "desk:add-massage"
   ],
   [
-   4600,
+   6700,
    "hide",
    "s2"
   ],
   [
-   4700,
+   6800,
    "show",
    "s3"
   ],
   [
-   5100,
+   6900,
    "cue",
    "desk:add-lava"
   ],
   [
-   6000,
+   8800,
    "hide",
    "s3"
   ],
   [
-   6000,
-   "show",
-   "s4"
-  ],
-  [
-   8000,
-   "hide",
-   "s4"
-  ],
-  [
-   8100,
+   8900,
    "show",
    "s5"
   ],
   [
-   8400,
+   9200,
    "cue",
    "desk:add-kopi"
   ],
   [
-   9100,
+   9800,
    "cue",
    "desk:add-goat"
   ],
   [
-   9800,
+   10400,
    "cue",
    "desk:add-genting"
   ],
   [
-   10800,
+   11300,
    "hide",
    "s5"
   ],
   [
-   10900,
+   11400,
    "cue",
    "desk:submit"
   ],
   [
-   12600,
+   13300,
    "show",
    "s6"
   ]
@@ -152,33 +166,38 @@
  "taps": [],
  "voice": [
   {
-   "t": 0.15,
-   "text": "Unpaid overtime. Kelvin's on his kopi break.",
-   "speed": 1.1
-  },
-  {
-   "t": 2.6,
-   "text": "So I'm claiming a goat.",
-   "speed": 1.1
-  },
-  {
-   "t": 4.7,
-   "text": "And emotional support lava.",
-   "speed": 1.1
-  },
-  {
-   "t": 6.4,
+   "t": 0.9,
    "text": "That goat is now my goat.",
    "voice": "bm_george",
    "speed": 0.9
   },
   {
-   "t": 8.2,
-   "text": "Okay. Smaller. Sneakier.",
+   "t": 2.2,
+   "text": "Okay. Let me explain.",
    "speed": 1.1
   },
   {
-   "t": 12.7,
+   "t": 3.3,
+   "text": "Unpaid overtime. Kelvin's on break.",
+   "speed": 1.15
+  },
+  {
+   "t": 4.9,
+   "text": "So I'm claiming a goat.",
+   "speed": 1.1
+  },
+  {
+   "t": 6.8,
+   "text": "And emotional support lava.",
+   "speed": 1.15
+  },
+  {
+   "t": 8.9,
+   "text": "Okay. Smaller. Sneakier.",
+   "speed": 1.15
+  },
+  {
+   "t": 13.4,
    "text": "Will he catch me? Comment.",
    "speed": 1.05
   }

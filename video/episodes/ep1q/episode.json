@@ -1,0 +1,152 @@
+{
+ "title": "Would you pay this claim? (Claim Rejected)",
+ "durationMs": 14000,
+ "storyTag": "@gamebyvote",
+ "screens": [
+  {
+   "id": "desk",
+   "src": "../play/?scene=1&ids=c46,c20,c44&rules=pic,food,grab,angbao"
+  }
+ ],
+ "startScreen": "desk",
+ "captions": [
+  {
+   "id": "q1",
+   "html": "Would you pay this? ☕×14",
+   "top": 30
+  },
+  {
+   "id": "a1",
+   "html": "✔ Legit. Under $20.",
+   "top": 30
+  },
+  {
+   "id": "q2",
+   "html": "And this one? 🚕",
+   "top": 30
+  },
+  {
+   "id": "a2",
+   "html": "✖ One minute early.",
+   "top": 30
+  },
+  {
+   "id": "q3",
+   "html": "Kelvin's claim 👀",
+   "top": 30
+  },
+  {
+   "id": "q4",
+   "html": "STAMP or SHRED? 👇",
+   "top": 30,
+   "yellow": true
+  }
+ ],
+ "outro": {
+  "big": "",
+  "sub": "",
+  "options": []
+ },
+ "timeline": [
+  [
+   0,
+   "show",
+   "q1"
+  ],
+  [
+   2700,
+   "hide",
+   "q1"
+  ],
+  [
+   2700,
+   "cue",
+   "desk:approve"
+  ],
+  [
+   2800,
+   "show",
+   "a1"
+  ],
+  [
+   4700,
+   "hide",
+   "a1"
+  ],
+  [
+   4900,
+   "show",
+   "q2"
+  ],
+  [
+   7300,
+   "hide",
+   "q2"
+  ],
+  [
+   7300,
+   "cue",
+   "desk:reject"
+  ],
+  [
+   7400,
+   "show",
+   "a2"
+  ],
+  [
+   9700,
+   "hide",
+   "a2"
+  ],
+  [
+   9900,
+   "show",
+   "q3"
+  ],
+  [
+   11600,
+   "hide",
+   "q3"
+  ],
+  [
+   11700,
+   "show",
+   "q4"
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.15,
+   "text": "Fourteen kopi. Nineteen sixty. Pay, or shred?",
+   "speed": 1.1
+  },
+  {
+   "t": 2.9,
+   "text": "Legit. Under twenty dollars.",
+   "speed": 1.1
+  },
+  {
+   "t": 5.0,
+   "text": "Grab to office. Nine fifty nine PM.",
+   "speed": 1.1
+  },
+  {
+   "t": 7.5,
+   "text": "Shred. One minute early.",
+   "speed": 1.1
+  },
+  {
+   "t": 9.9,
+   "text": "Ang bao. For me. From the company.",
+   "voice": "bm_george",
+   "speed": 0.9
+  },
+  {
+   "t": 12.0,
+   "text": "Stamp, or shred? Comment.",
+   "speed": 1.05
+  }
+ ],
+ "sfx": []
+}

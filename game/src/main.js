@@ -394,12 +394,12 @@ async function addItem(id) {
     sfx.buzz(); navigator.vibrate?.(80);
     const el = $('#pile'), k = $('#kelvin').getBoundingClientRect(), box = el.getBoundingClientRect();
     el.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-75deg) translateX(-40px)', opacity: 0 }], { duration: 600, easing: 'ease-in', fill: 'forwards' });
-    const it = ITEM[pile[Math.floor(Math.random() * pile.length)]], f = document.createElement('div');
+    const it = ITEM[SCENE && pile.includes('goat') ? 'goat' : pile[Math.floor(Math.random() * pile.length)]], f = document.createElement('div');
     f.className = 'flyitem'; f.textContent = it.pic; f.style.left = box.left + box.width / 2 + 'px'; f.style.top = box.top + 'px'; app.append(f);
     $('#kelvin').style.opacity = 1;
     await f.animate([{ transform: 'none' }, { transform: `translate(${k.left - box.left - box.width / 2 + 20}px,${k.top - box.top - 60}px) rotate(400deg)`, offset: .6 }, { transform: `translate(${k.left - box.left - box.width / 2 + 20}px,${k.top - box.top + 10}px) rotate(380deg)` }],
       { duration: 900, easing: 'ease-out', fill: 'forwards' }).finished;
-    sfx.stamp(); say(K(pick(SCAM.kelvin.topple)), 'shake');
+    sfx.stamp(); say(K(fill(SCENE ? SCAM.kelvin.topple[1] : pick(SCAM.kelvin.topple), { item: it.name.split(' (')[0].replace(/^Live /, '').toLowerCase() })), 'shake');
     setTimeout(() => f.remove(), 900);
     pile = []; await wait(700); el.getAnimations().forEach(a => a.cancel()); drawPile();
     toast('The pile fell over. Start again. Lighter.');
@@ -420,7 +420,7 @@ async function submitScam() {
 }
 
 async function boot() {
-  if (SCENE) { meters(); rulesBoard(S.day); deskBottom(); $('#c_day').innerHTML = 'DAY <i>1</i>'; startShift(sgDate()); showClaim(); if (q.get('say')) say(K(q.get('say'))); return; }
+  if (SCENE) { meters(); rulesBoard(S.day); deskBottom(); $('#c_day').innerHTML = 'DAY <i>1</i>'; startShift(sgDate()); if (q.has('scam')) scamMode(); else showClaim(); if (q.get('say')) say(K(q.get('say'))); return; }
   mode = 'desk'; $('#kelvin').style.opacity = 1;
   const today = sgDate();
   if (S.shift && S.shift.date !== today) { if (S.shift.done || S.shift.i > 0) S.day++; S.shift = null; }   // a new day: next career day
@@ -442,6 +442,7 @@ async function boot() {
 addEventListener('message', e => {           // Reel beats from video/composer.html
   const b = e.data && e.data.beat;
   if (b === 'reject') decide(false); else if (b === 'approve') decide(true); else if (b === 'face') stampKelvin(); else if (b === 'end') endShift();
+  else if (b === 'scam') scamMode(); else if (b === 'submit') submitScam(); else if (b && b.startsWith('add-')) addItem(b.slice(4));
 });
 if (SCENE) document.body.style.zoom = Math.max(1, innerWidth / 390);
 window.GBV = { get state() { return S; }, nextDay: () => { dayOffset++; boot(); }, current: () => cur, decide, stampKelvin, addItem, submitScam, wipe: () => { wipe(); location.reload(); } };

@@ -1,0 +1,187 @@
+{
+ "title": "Scam mode: sneaking a goat past Kelvin (Claim Rejected)",
+ "durationMs": 15000,
+ "storyTag": "@gamebyvote",
+ "screens": [
+  {
+   "id": "desk",
+   "src": "../play/?scene=1&scam=1"
+  }
+ ],
+ "startScreen": "desk",
+ "captions": [
+  {
+   "id": "s1",
+   "html": "POV: unpaid overtime 🌙",
+   "top": 30
+  },
+  {
+   "id": "s2",
+   "html": "Claiming… a goat 🐐",
+   "top": 30
+  },
+  {
+   "id": "s3",
+   "html": "…and lava 🌋",
+   "top": 30
+  },
+  {
+   "id": "s4",
+   "html": "oh no",
+   "top": 30
+  },
+  {
+   "id": "s5",
+   "html": "Smaller. Sneakier.",
+   "top": 30
+  },
+  {
+   "id": "s6",
+   "html": "Caught or …Fine? 👇",
+   "top": 30,
+   "yellow": true
+  }
+ ],
+ "outro": {
+  "big": "",
+  "sub": "",
+  "options": []
+ },
+ "timeline": [
+  [
+   0,
+   "show",
+   "s1"
+  ],
+  [
+   900,
+   "cue",
+   "desk:add-kopi"
+  ],
+  [
+   1700,
+   "cue",
+   "desk:add-genting"
+  ],
+  [
+   2400,
+   "hide",
+   "s1"
+  ],
+  [
+   2500,
+   "show",
+   "s2"
+  ],
+  [
+   2700,
+   "cue",
+   "desk:add-goat"
+  ],
+  [
+   3700,
+   "cue",
+   "desk:add-massage"
+  ],
+  [
+   4600,
+   "hide",
+   "s2"
+  ],
+  [
+   4700,
+   "show",
+   "s3"
+  ],
+  [
+   5100,
+   "cue",
+   "desk:add-lava"
+  ],
+  [
+   6000,
+   "hide",
+   "s3"
+  ],
+  [
+   6000,
+   "show",
+   "s4"
+  ],
+  [
+   8000,
+   "hide",
+   "s4"
+  ],
+  [
+   8100,
+   "show",
+   "s5"
+  ],
+  [
+   8400,
+   "cue",
+   "desk:add-kopi"
+  ],
+  [
+   9100,
+   "cue",
+   "desk:add-goat"
+  ],
+  [
+   9800,
+   "cue",
+   "desk:add-genting"
+  ],
+  [
+   10800,
+   "hide",
+   "s5"
+  ],
+  [
+   10900,
+   "cue",
+   "desk:submit"
+  ],
+  [
+   12600,
+   "show",
+   "s6"
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.15,
+   "text": "Unpaid overtime. Kelvin's on his kopi break.",
+   "speed": 1.1
+  },
+  {
+   "t": 2.6,
+   "text": "So I'm claiming a goat.",
+   "speed": 1.1
+  },
+  {
+   "t": 4.7,
+   "text": "And emotional support lava.",
+   "speed": 1.1
+  },
+  {
+   "t": 6.4,
+   "text": "That goat is now my goat.",
+   "voice": "bm_george",
+   "speed": 0.9
+  },
+  {
+   "t": 8.2,
+   "text": "Okay. Smaller. Sneakier.",
+   "speed": 1.1
+  },
+  {
+   "t": 12.7,
+   "text": "Will he catch me? Comment.",
+   "speed": 1.05
+  }
+ ],
+ "sfx": []
+}

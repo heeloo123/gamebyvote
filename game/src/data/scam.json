@@ -1,29 +1,132 @@
 {
-  "_doc": "Unpaid overtime = SCAM MODE. Pile items onto your own claim and slide it into Kelvin's tray. sus = how suspicious (0-10); weight = how much the pile wobbles. Kelvin audits overnight. Each vote adds a permanent item.",
-  "maxItems": 8,
-  "catchBase": 0.05,
-  "catchPerSus": 0.035,
-  "toppleWeight": 14,
-  "caughtFinePct": 0.5,
-  "items": [
-    { "id": "kopi", "pic": "☕", "name": "Kopi-C kosong", "price": 1.4, "sus": 0, "weight": 1 },
-    { "id": "stapler", "pic": "📎", "name": "Paper clips (bulk)", "price": 12, "sus": 1, "weight": 1 },
-    { "id": "boba", "pic": "🧋", "name": "Bubble tea, 50% sugar", "price": 6.9, "sus": 1, "weight": 1 },
-    { "id": "plant", "pic": "🪴", "name": "Office plant (morale)", "price": 35, "sus": 2, "weight": 2 },
-    { "id": "durian", "pic": "🌰", "name": "Durian (Mao Shan Wang)", "price": 68, "sus": 3, "weight": 3 },
-    { "id": "grab", "pic": "🚕", "name": "Grab to JB", "price": 92, "sus": 4, "weight": 1 },
-    { "id": "karaoke", "pic": "🎤", "name": "Karaoke 'workshop'", "price": 150, "sus": 4, "weight": 2 },
-    { "id": "massage", "pic": "💺", "name": "Massage chair", "price": 1299, "sus": 6, "weight": 5 },
-    { "id": "goat", "pic": "🐐", "name": "Live goat (team mascot)", "price": 450, "sus": 6, "weight": 4 },
-    { "id": "genting", "pic": "🎰", "name": "Team bonding: Genting", "price": 480, "sus": 7, "weight": 1 },
-    { "id": "lava", "pic": "🌋", "name": "Emotional support lava", "price": 4000, "sus": 8, "weight": 6 },
-    { "id": "bto", "pic": "🏠", "name": "BTO downpayment", "price": 9999, "sus": 10, "weight": 7 }
-  ],
-  "kelvin": {
-    "intro": ["The office is empty. Kelvin is on his kopi break.", "Kelvin left his tray unattended. Bold of him."],
-    "submit": ["…I'll audit this overnight.", "Interesting. I'll be reading this. Line by line.", "Leave it. I'll check it at 9 AM. Sharp."],
-    "caught": ["I read every line. Out loud. To myself. Twice.", "A goat. On a claim. Stapling this to the wall.", "Wall of Shame, entry #{n}. Congratulations.", "I'm not angry. I'm itemising."],
-    "approved": ["…Fine.", "…Fine. Don't make it a habit.", "I didn't see anything. I was on leave. Spiritually."],
-    "topple": ["Your claim fell on my desk. That's a claim against you.", "That durian is now my durian."]
+ "_doc": "Unpaid overtime = SCAM MODE. Pile items onto your own claim and slide it into Kelvin's tray. sus = how suspicious (0-10); weight = how much the pile wobbles. Kelvin audits overnight. Each vote adds a permanent item.",
+ "maxItems": 8,
+ "catchBase": 0.05,
+ "catchPerSus": 0.035,
+ "toppleWeight": 14,
+ "caughtFinePct": 0.5,
+ "items": [
+  {
+   "id": "kopi",
+   "pic": "☕",
+   "name": "Kopi-C kosong",
+   "price": 1.4,
+   "sus": 0,
+   "weight": 1
+  },
+  {
+   "id": "stapler",
+   "pic": "📎",
+   "name": "Paper clips (bulk)",
+   "price": 12,
+   "sus": 1,
+   "weight": 1
+  },
+  {
+   "id": "boba",
+   "pic": "🧋",
+   "name": "Bubble tea, 50% sugar",
+   "price": 6.9,
+   "sus": 1,
+   "weight": 1
+  },
+  {
+   "id": "plant",
+   "pic": "🪴",
+   "name": "Office plant (morale)",
+   "price": 35,
+   "sus": 2,
+   "weight": 2
+  },
+  {
+   "id": "durian",
+   "pic": "🌰",
+   "name": "Durian (Mao Shan Wang)",
+   "price": 68,
+   "sus": 3,
+   "weight": 3
+  },
+  {
+   "id": "grab",
+   "pic": "🚕",
+   "name": "Grab to JB",
+   "price": 92,
+   "sus": 4,
+   "weight": 1
+  },
+  {
+   "id": "karaoke",
+   "pic": "🎤",
+   "name": "Karaoke 'workshop'",
+   "price": 150,
+   "sus": 4,
+   "weight": 2
+  },
+  {
+   "id": "massage",
+   "pic": "💺",
+   "name": "Massage chair",
+   "price": 1299,
+   "sus": 6,
+   "weight": 5
+  },
+  {
+   "id": "goat",
+   "pic": "🐐",
+   "name": "Live goat (team mascot)",
+   "price": 450,
+   "sus": 6,
+   "weight": 4
+  },
+  {
+   "id": "genting",
+   "pic": "🎰",
+   "name": "Team bonding: Genting",
+   "price": 480,
+   "sus": 7,
+   "weight": 1
+  },
+  {
+   "id": "lava",
+   "pic": "🌋",
+   "name": "Emotional support lava",
+   "price": 4000,
+   "sus": 8,
+   "weight": 6
+  },
+  {
+   "id": "bto",
+   "pic": "🏠",
+   "name": "BTO downpayment",
+   "price": 9999,
+   "sus": 10,
+   "weight": 7
   }
+ ],
+ "kelvin": {
+  "intro": [
+   "The office is empty. Kelvin is on his kopi break.",
+   "Kelvin left his tray unattended. Bold of him."
+  ],
+  "submit": [
+   "…I'll audit this overnight.",
+   "Interesting. I'll be reading this. Line by line.",
+   "Leave it. I'll check it at 9 AM. Sharp."
+  ],
+  "caught": [
+   "I read every line. Out loud. To myself. Twice.",
+   "A goat. On a claim. Stapling this to the wall.",
+   "Wall of Shame, entry #{n}. Congratulations.",
+   "I'm not angry. I'm itemising."
+  ],
+  "approved": [
+   "…Fine.",
+   "…Fine. Don't make it a habit.",
+   "I didn't see anything. I was on leave. Spiritually."
+  ],
+  "topple": [
+   "Your claim fell on my desk. That's a claim against you.",
+   "That {item} is now my {item}."
+  ]
+ }
 }

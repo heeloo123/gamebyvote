@@ -4,73 +4,85 @@
    "id": "pic",
    "icon": "🖼️",
    "text": "Picture must match the item",
-   "check": "pic"
+   "check": "pic",
+   "short": "Pic = item"
   },
   {
    "id": "booze",
    "icon": "🍺",
    "text": "No alcohol. At all.",
-   "check": "pic"
+   "check": "pic",
+   "short": "No alcohol"
   },
   {
    "id": "food",
    "icon": "🍜",
    "text": "Food & drink max $20",
-   "check": "amount"
+   "check": "amount",
+   "short": "Food ≤ $20"
   },
   {
    "id": "weekend",
    "icon": "📅",
    "text": "No weekend dates",
-   "check": "date"
+   "check": "date",
+   "short": "No weekends"
   },
   {
    "id": "grab",
    "icon": "🚕",
    "text": "Grab rides only after 10 PM",
-   "check": "time"
+   "check": "time",
+   "short": "Grab after 10PM"
   },
   {
    "id": "future",
    "icon": "🔮",
    "text": "No future dates",
-   "check": "date"
+   "check": "date",
+   "short": "No future dates"
   },
   {
    "id": "shopee",
    "icon": "🛒",
    "text": "Nothing bought on Shopee",
-   "check": "note"
+   "check": "note",
+   "short": "No Shopee"
   },
   {
    "id": "kopi",
    "icon": "☕",
    "text": "No kopi after 3 PM",
-   "check": "time"
+   "check": "time",
+   "short": "No kopi after 3PM"
   },
   {
    "id": "bonding",
    "icon": "🤝",
    "text": "Team bonding needs 2+ pax",
-   "check": "note"
+   "check": "note",
+   "short": "Bonding: 2+ pax"
   },
   {
    "id": "intern",
    "icon": "🧒",
    "text": "Interns: max $10 per claim",
-   "check": "from"
+   "check": "from",
+   "short": "Intern ≤ $10"
   },
   {
    "id": "mc",
    "icon": "🤒",
    "text": "No claims while on MC",
-   "check": "note"
+   "check": "note",
+   "short": "Not while on MC"
   },
   {
    "id": "angbao",
    "icon": "🧧",
    "text": "Ang bao is not an expense",
-   "check": "pic"
+   "check": "pic",
+   "short": "No ang bao"
   }
  ],
  "claims": [

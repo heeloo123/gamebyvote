@@ -1,0 +1,219 @@
+{
+ "title": "Episode 1: Kelvin from Accounting expensed Genting (Claim Rejected)",
+ "durationMs": 19000,
+ "storyTag": "Episode 1 · @gamebyvote",
+ "screens": [
+  {
+   "id": "desk",
+   "src": "../play/?scene=1&ids=c33,counter&rules=pic,booze,bonding"
+  },
+  {
+   "id": "water",
+   "src": "../play/?scene=1&ids=c46&rules=pic,food&hazard=water"
+  },
+  {
+   "id": "cola",
+   "src": "../play/?scene=1&ids=c46&rules=pic,food&hazard=cola"
+  },
+  {
+   "id": "lava",
+   "src": "../play/?scene=1&ids=c46&rules=pic,food&hazard=lava"
+  }
+ ],
+ "startScreen": "desk",
+ "captions": [
+  {
+   "id": "c1",
+   "html": "My coworker<br>expensed THIS 🎰",
+   "top": 30
+  },
+  {
+   "id": "c2",
+   "html": "So I stamped<br>his face 🫵",
+   "top": 30
+  },
+  {
+   "id": "c3",
+   "html": "…and shredded it",
+   "top": 30
+  },
+  {
+   "id": "c4",
+   "html": "Now HE is<br>billing ME 😭",
+   "top": 30,
+   "yellow": true
+  },
+  {
+   "id": "c5",
+   "html": "It's a real game.<br>Link in bio.",
+   "top": 30
+  }
+ ],
+ "outro": {
+  "big": "A, B or C?",
+  "sub": "What does Kelvin spill on the receipts? Comment one letter. It goes into the game for real.",
+  "options": [
+   {
+    "letter": "A",
+    "label": "Water",
+    "screen": "water",
+    "reward": "↩️ 1 undo a day",
+    "cost": "💧 Ink runs"
+   },
+   {
+    "letter": "B",
+    "label": "Cola",
+    "screen": "cola",
+    "reward": "💰 2× budget",
+    "cost": "🥤 3 stuck together"
+   },
+   {
+    "letter": "C",
+    "label": "Lava",
+    "screen": "lava",
+    "reward": "⚡ Speed bonus",
+    "cost": "🔥 Burns in 5 s"
+   }
+  ],
+  "next": "⏰ Votes close Sun 8 Nov, 10pm SGT"
+ },
+ "timeline": [
+  [
+   0,
+   "show",
+   "c1"
+  ],
+  [
+   2600,
+   "hide",
+   "c1"
+  ],
+  [
+   2700,
+   "cue",
+   "desk:face"
+  ],
+  [
+   2800,
+   "show",
+   "c2"
+  ],
+  [
+   5000,
+   "hide",
+   "c2"
+  ],
+  [
+   5100,
+   "cue",
+   "desk:reject"
+  ],
+  [
+   5200,
+   "show",
+   "c3"
+  ],
+  [
+   7000,
+   "hide",
+   "c3"
+  ],
+  [
+   7100,
+   "show",
+   "c4"
+  ],
+  [
+   9200,
+   "hide",
+   "c4"
+  ],
+  [
+   9300,
+   "show",
+   "c5"
+  ],
+  [
+   10500,
+   "hide",
+   "c5"
+  ],
+  [
+   10600,
+   "show",
+   "outro"
+  ],
+  [
+   11000,
+   "option",
+   0
+  ],
+  [
+   12200,
+   "option",
+   1
+  ],
+  [
+   13400,
+   "option",
+   2
+  ],
+  [
+   14600,
+   "option",
+   -1
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.15,
+   "text": "My coworker Kelvin just expensed Genting. For one person.",
+   "speed": 1.1
+  },
+  {
+   "t": 2.8,
+   "text": "So I stamped his face."
+  },
+  {
+   "t": 3.9,
+   "text": "Did you just stamp my face?",
+   "voice": "bm_george",
+   "speed": 0.9
+  },
+  {
+   "t": 5.3,
+   "text": "And shredded it."
+  },
+  {
+   "t": 7.2,
+   "text": "Now he's billing me. For emotional damage.",
+   "speed": 1.1
+  },
+  {
+   "t": 9.4,
+   "text": "It's a real game. Link in bio.",
+   "speed": 1.1
+  },
+  {
+   "t": 10.7,
+   "text": "What does Kelvin spill on the receipts?",
+   "speed": 1.15
+  },
+  {
+   "t": 12.2,
+   "text": "Water. Cola. Or lava.",
+   "speed": 1.0
+  },
+  {
+   "t": 14.8,
+   "text": "Comment A, B, or C. I build whatever wins."
+  }
+ ],
+ "sfx": [
+  {
+   "t": 2.7,
+   "sound": "beepclick"
+  }
+ ]
+}

@@ -9,12 +9,15 @@ import CFG from './data/config.json';
 import DATA from './data/claims.json';
 import SCAM from './data/scam.json';
 import { sfx, unlock } from './sfx.js';
-import { load, save, wipe } from './save.js';
+import { load, save as save0, wipe, fresh } from './save.js';
 
 const q = new URLSearchParams(location.search);
 const DEBUG = q.has('debug');
+const SCENE = q.has('scene');                          // ?scene=1: scripted for Reels (no save, no intro; beats via postMessage)
+const HAZARD = q.get('hazard');                         // water | cola | lava: what Kelvin spilled (the Ep 1 vote)
 if (q.has('reset')) wipe();
-let S = load();
+let S = SCENE ? { ...fresh(), intro: true } : load();
+const save = s => { if (!SCENE) save0(s); };
 const RULES = DATA.rules, CLAIMS = DATA.claims, KL = DATA.kelvin, COL = DATA.colleagues || {};
 const COUNTER = { id: 'counter', from: 'kelvin', item: 'Emotional damage', pic: '😭', amount: 49.9, note: 'You stamped my face', breaks: null,
   why: 'Sadly, no rule against emotional damage. Yet.', counter: true };
@@ -42,6 +45,7 @@ const sgDate = () => new Date(Date.now() + 8 * 3600e3 + dayOffset * 86400e3).toI
 const msToMidnight = () => { const t = Date.now() + 8 * 3600e3 + dayOffset * 86400e3; return 86400e3 - (t % 86400e3); };
 
 function activeRules(day) {
+  if (SCENE && q.get('rules')) return q.get('rules').split(',').map(id => RULES.find(r => r.id === id)).filter(Boolean);
   const n = CFG.startRules + day - 1;
   if (n <= RULES.length) return RULES.slice(Math.max(0, n - CFG.maxRules), n);
   const r = rng('rules|' + day), pool = [...RULES];   // after every rule is out: a seeded mix of 5
@@ -88,8 +92,8 @@ function meters() {
 function hitMeter(id) { const el = $('#' + id); if (!el) return; el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }
 function rulesBoard(day, title) {
   const nw = newestRule(day);
-  $('#rules').innerHTML = `<div class="t">${title || '📌 RULES (set by Kelvin)'}</div>` + (title ? '' : activeRules(day).map(r =>
-    `<div class="r ${nw && r.id === nw.id ? 'new' : ''}"><span class="ic">${r.icon}</span><span>${esc(r.text)}</span>${nw && r.id === nw.id && day > 1 ? '<span class="badge">NEW</span>' : ''}</div>`).join(''));
+  $('#rules').innerHTML = title ? `<div class="t" style="font-size:9px;color:#2b1d3a">${title}</div>` : `<div class="t">📌 RULES</div><div class="chips">` + activeRules(day).map(r =>
+    `<span class="rc ${nw && r.id === nw.id && day > 1 ? 'new' : ''}">${r.icon} ${esc(r.short || r.text)}</span>`).join('') + '</div>';
 }
 function kelvinFace() {
   const k = $('#kelvin'); k.innerHTML = S.face === sgDate() ? '<span class="sticker">REJECTED</span>' : '';
@@ -133,8 +137,9 @@ function showClaim() {
   cur = c;
   $('#c_n').innerHTML = `CLAIM <i>${sh.i + 1}</i>/${sh.ids.length}`;
   if (sh.i + 1 < sh.ids.length) { const back = document.createElement('div'); back.className = 'card back'; back.innerHTML = cardHTML(BY_ID[sh.ids[sh.i + 1]], 401 + S.day * 10 + sh.i); stage.append(back); }
-  const el = document.createElement('div'); el.className = 'card' + (c.from === 'kelvin' ? ' kelvin' : '');
-  el.innerHTML = cardHTML(c, 400 + S.day * 10 + sh.i);
+  if (HAZARD === 'cola') for (const k of [2, 1]) { const st = document.createElement('div'); st.className = 'card back stuck s' + k; st.innerHTML = cardHTML(c, 0); stage.append(st); }
+  const el = document.createElement('div'); el.className = 'card' + (c.from === 'kelvin' ? ' kelvin' : '') + (HAZARD ? ' hz-' + HAZARD : '');
+  el.innerHTML = cardHTML(c, 400 + S.day * 10 + sh.i) + (HAZARD ? `<div class="hzb">${{ water: '💧 INK RUNS', cola: '🥤 STUCK ×3', lava: '🔥 BURNS IN 5s' }[HAZARD]}</div>` : '') + (HAZARD === 'lava' ? '<div class="fuse"></div>' : '');
   stage.append(el); drag(el);
   el.animate([{ transform: 'translateX(-120%) rotate(-14deg)' }, { transform: 'translateX(6%) rotate(2deg)', offset: .75 }, { transform: 'none' }], { duration: 380, easing: 'ease-out' });
   if (c.counter) say(K('Counter-claim. You know what you did.'), 'smug');
@@ -191,7 +196,7 @@ async function decide(approve) {
 
   // verdict: one line, no popup (the full review is on the end-of-shift report)
   const v = document.createElement('div'); v.className = 'verdict ' + (right ? 'ok' : 'no');
-  v.textContent = right ? '✔ CORRECT' : r ? '✖ ' + r.icon + ' ' + r.text : '✖ It was legit!';
+  v.textContent = right ? '✔ CORRECT' : r ? '✖ ' + r.icon + ' ' + (r.short || r.text) : '✖ It was legit!';
   stage.append(v);
   let line, mood = null;
   if (c.counter) line = approve ? 'Pleasure. Paid in full.' : 'Rejecting my damages. More damages.';
@@ -260,7 +265,7 @@ async function fired() {
 // ---------- day flow ----------
 let mode = 'desk';
 function startShift(date) {
-  S.shift = { date, day: S.day, ids: dealShift(date, S.day), i: 0, results: [], caught: 0, fooled: 0 };
+  S.shift = { date, day: S.day, ids: SCENE && q.get('ids') ? q.get('ids').split(',') : dealShift(date, S.day), i: 0, results: [], caught: 0, fooled: 0 };
   save(S);
 }
 
@@ -291,18 +296,15 @@ async function auditScam() {
 
 async function morning() {
   const y = S.yesterday || { caught: 0, wrong: 0, right: 0 }, nw = newestRule(S.day);
-  const intro = nw ? (KL.rule_intro?.[nw.id] || 'New rule. Effective immediately.') : 'No new rule today. Enjoy the uncertainty.';
-  const n = CFG.startRules + S.day - 1, retired = n > CFG.maxRules && n <= RULES.length ? RULES[n - CFG.maxRules - 1] : null;
-  await sheet(`<div class="sub">INTERNAL MEMO · DAY ${S.day}</div><div class="kv"></div>
+  await sheet(`<div class="sub">MEMO · DAY ${S.day}</div><div class="kv"></div>
     <div class="say"><b>Kelvin:</b> “${esc(fill(pick(KL.morning), { caught: y.caught, wrong: y.wrong, right: y.right, streak: S.streak }))}”</div>
-    ${nw ? `<div class="newrule">NEW RULE<br>${nw.icon} ${esc(nw.text)}<br><span style="font-size:8px">“${esc(intro)}”</span></div>` : ''}
-    ${retired ? `<div class="small">Retired: ${retired.icon} ${esc(retired.text)}</div>` : ''}`, [{ id: 'go', label: 'Start shift ☕' }]);
+    ${nw ? `<div class="newrule">NEW RULE: ${nw.icon} ${esc(nw.short || nw.text)}</div>` : ''}`, [{ id: 'go', label: 'Start shift ☕' }]);
 }
 
 async function intro() {
   await sheet(`<div class="kv"></div><h1>KELVIN</h1><div class="sub">SENIOR ACCOUNTING. SENIOR.</div>
-    <div class="say">“You're the new finance hire. Claims land on your desk. Follow the rules: <span class="good">PAY</span> the good ones, <span class="bad">SHRED</span> the rest.<br><br>I make the rules. I also… submit claims. Don't worry about those.”</div>
-    <div class="small">Swipe → or tap the tray to pay · swipe ← or tap the shredder to reject<br>Psst: you can also stamp Kelvin. Once a day.</div>`, [{ id: 'ok', label: 'OK boss' }]);
+    <div class="say">“<span class="good">PAY</span> good claims.<br><span class="bad">SHRED</span> the rest.<br>Ignore mine.”</div>
+    <div class="small">→ pay · ← shred · tap Kelvin once 🫵</div>`, [{ id: 'ok', label: 'OK boss' }]);
   S.intro = true; save(S);
 }
 
@@ -331,7 +333,7 @@ async function report() {
   const sh = S.shift, right = sh.results.filter(r => r.ok).length, today = sgDate();
   // the end-of-shift collapse: every receipt of the day lands on Kelvin
   const pile = sh.results.map((r, i) => { const c = BY_ID[r.id]; return `<div class="pp" style="left:${20 + (i % 3) * 52 + (i * 13) % 17}px;bottom:${Math.floor(i / 3) * 24 + (i % 2) * 8}px;transform:rotate(${(i * 37) % 30 - 15}deg);animation-delay:${.3 + i * .18}s">${c?.pic || '🧾'}</div>`; }).join('');
-  const mistakes = sh.results.filter(r => !r.ok).map(r => { const c = BY_ID[r.id], ru = c?.breaks && RULE[c.breaks]; return `<span class="bad">✖ ${c.pic} ${esc(c.item)}: ${ru ? ru.icon + ' ' + esc(ru.text) : 'it was legit'}</span>${esc(c.why || '')}`; }).join('<br>');
+  const mistakes = sh.results.filter(r => !r.ok).map(r => { const c = BY_ID[r.id], ru = c?.breaks && RULE[c.breaks]; return `<span class="bad">✖ ${c.pic} ${esc(c.item)} → ${ru ? ru.icon + ' ' + esc(ru.short || ru.text) : 'legit'}</span>`; }).join('');
   const tick = () => { const ms = msToMidnight(), h = Math.floor(ms / 3600e3), m = Math.floor(ms % 3600e3 / 60e3), s = Math.floor(ms % 60e3 / 1000); return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`; };
   const scammed = S.scam && S.scam.date === today;
   const btns = [{ id: 'share', label: 'SHARE MY SHIFT 🧾' }, scammed ? { id: 'none', label: '😴 Claim submitted. Kelvin audits at 9 AM.', alt: true } : { id: 'ot', label: 'Unpaid overtime: SCAM MODE 😈', alt: true }];
@@ -339,10 +341,10 @@ async function report() {
   const p = sheet(`<div class="sub">END OF SHIFT · DAY ${sh.day}</div><h1>${right}/${sh.results.length} CORRECT</h1>
     <div class="collapse"><div class="kv"></div>${pile}</div>
     <div class="grid">${gridOf(sh)}</div>
-    <div class="stats"><span><b>${sh.caught}</b>caught Kelvin</span><span><b>${S.budget}%</b>budget</span><span><b>${S.morale}%</b>morale</span><span><b>${S.streak}</b>🔥 streak</span></div>
+    <div class="stats"><span><b>${sh.caught}</b>🧾 caught</span><span><b>${S.budget}%</b>💰</span><span><b>${S.morale}%</b>🙂</span><span><b>${S.streak}</b>🔥</span></div>
     ${mistakes ? `<div class="review">${mistakes}</div>` : ''}
     <div class="small">Next shift in <span id="cd">${tick()}</span>${S.shame ? ` · Wall of Shame: ${S.shame}` : ''}${S.scamEarned ? ` · Scam savings ${money(S.scamEarned)}` : ''}</div>
-    <div class="small">🗳️ This week's vote: Kelvin spills <b>${CFG.vote.options.join(' / ')}</b> on the receipts. Vote in the TikTok comments.</div>`, btns);
+    <div class="small">🗳️ Vote on TikTok: 💧 / 🥤 / 🌋</div>`, btns);
   sfx.stamp(); setTimeout(() => sfx.stamp(), 600);
   const cd = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = tick(); if (msToMidnight() < 1500) { clearInterval(cd); location.reload(); } }, 1000);
   const act = await p; clearInterval(cd);
@@ -361,7 +363,7 @@ let pile = [];
 async function scamMode() {
   mode = 'scam'; pile = []; S.stats.overtime++; save(S);
   $('#c_day').innerHTML = `DAY <i>${S.day}</i> · 🌙 OT`; $('#c_n').innerHTML = 'SCAM MODE';
-  rulesBoard(S.day, '😈 SNEAK YOUR OWN CLAIM INTO KELVIN\'S TRAY. Bigger pile = more money = more suspicious.');
+  rulesBoard(S.day, '😈 Sneak your claim past Kelvin. Bigger = riskier.');
   say('<i>' + esc(pick(SCAM.kelvin.intro)) + '</i>');
   $('#kelvin').style.opacity = .35;
   stage.innerHTML = `<div class="scampaper"><div class="hd"><span>MY CLAIM (totally legit)</span><span id="tot">$0.00</span></div><div class="pile" id="pile"></div></div>`;
@@ -413,12 +415,12 @@ async function submitScam() {
   say(K(pick(SCAM.kelvin.submit)), 'smug');
   await wait(900);
   await sheet(`<div class="sub">OVERTIME CLAIM SUBMITTED</div><div class="kv"></div><h1>${money(st.total)}</h1>
-    <div>${pile.map(id => ITEM[id].pic).join(' ')}</div><div class="say">Kelvin audits it at <b>9 AM</b>.<br>Chance he catches you: <b>${Math.round(st.p * 100)}%</b></div>
-    <div class="small">Come back tomorrow for the verdict (and a new shift).</div>`, [{ id: 'ok', label: 'Go home, act natural 😐' }]);
+    <div>${pile.map(id => ITEM[id].pic).join(' ')}</div><div class="say">Kelvin audits at <b>9 AM</b>. Risk: <b>${Math.round(st.p * 100)}%</b></div>`, [{ id: 'ok', label: 'Go home, act natural 😐' }]);
   mode = 'report'; rulesBoard(S.day); deskBottom(); report();
 }
 
 async function boot() {
+  if (SCENE) { meters(); rulesBoard(S.day); deskBottom(); $('#c_day').innerHTML = 'DAY <i>1</i>'; startShift(sgDate()); showClaim(); if (q.get('say')) say(K(q.get('say'))); return; }
   mode = 'desk'; $('#kelvin').style.opacity = 1;
   const today = sgDate();
   if (S.shift && S.shift.date !== today) { if (S.shift.done || S.shift.i > 0) S.day++; S.shift = null; }   // a new day: next career day
@@ -437,5 +439,10 @@ async function boot() {
   showClaim();
 }
 
+addEventListener('message', e => {           // Reel beats from video/composer.html
+  const b = e.data && e.data.beat;
+  if (b === 'reject') decide(false); else if (b === 'approve') decide(true); else if (b === 'face') stampKelvin(); else if (b === 'end') endShift();
+});
+if (SCENE) document.body.style.zoom = Math.max(1, innerWidth / 390);
 window.GBV = { get state() { return S; }, nextDay: () => { dayOffset++; boot(); }, current: () => cur, decide, stampKelvin, addItem, submitScam, wipe: () => { wipe(); location.reload(); } };
 (async () => { try { await document.fonts.load('10px "P"'); } catch (e) {} boot(); })();

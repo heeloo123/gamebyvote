@@ -137,3 +137,15 @@ body{font-family:"P",monospace;color:#2b1d3a}
 .flyitem{position:absolute;font-size:34px;z-index:20;pointer-events:none;font-family:system-ui,"Apple Color Emoji","Noto Color Emoji",sans-serif}
 .unroll{max-height:220px;overflow:hidden;text-align:left;font-size:8px;line-height:1.9;border:2px dashed #b8b2a0;padding:6px 8px;margin:6px 0;animation:unroll 2.2s ease-out}
 @keyframes unroll{from{max-height:0}}
+#rules .chips{display:flex;flex-wrap:wrap;gap:4px}
+#rules .rc{background:#fff6;border:2px solid #2b1d3a;border-radius:6px;padding:3px 5px;font-size:8px;white-space:nowrap}
+#rules .rc.new{background:#d9443a;color:#fff}
+/* Ep 1 vote hazards (what Kelvin spilled) */
+.hzb{position:absolute;right:8px;bottom:16px;font-size:8px;background:#2b1d3a;color:#fff;padding:4px 6px;border-radius:5px}
+.hz-water .row b,.hz-water .item span:last-child{filter:blur(1.6px);color:#3a5aa0}
+.hz-water{background:radial-gradient(circle at 70% 60%,#bfe3ff 0 18%,transparent 19%),radial-gradient(circle at 25% 75%,#bfe3ff 0 10%,transparent 11%),#f6f3e8}
+.hz-cola{background:radial-gradient(circle at 30% 40%,#a8703f88 0 16%,transparent 17%),radial-gradient(circle at 75% 80%,#7a4a2488 0 12%,transparent 13%),#f6f3e8}
+.card.stuck{filter:sepia(.5) brightness(.9)}.card.stuck.s1{transform:translate(8px,10px) rotate(4deg)}.card.stuck.s2{transform:translate(-10px,16px) rotate(-5deg)}
+.hz-lava{box-shadow:0 0 0 3px #ff7a2a,0 0 24px 6px #ff7a2acc,0 6px 0 #0006;background:linear-gradient(transparent 70%,#ffd06088),#f6f3e8}
+.fuse{position:absolute;left:0;bottom:8px;height:6px;background:linear-gradient(90deg,#ff7a2a,#ffd060);width:100%;animation:fuse 5s linear forwards}
+@keyframes fuse{to{width:0}}

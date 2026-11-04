@@ -1,0 +1,72 @@
+{
+ "title": "Fling Kelvin: 渡劫 Tower concept clip",
+ "durationMs": 14000,
+ "storyTag": "@gamebyvote",
+ "screens": [
+  {
+   "id": "t",
+   "src": "../play4/?bot=1&wait=1"
+  }
+ ],
+ "startScreen": "t",
+ "captions": [
+  {
+   "id": "c1",
+   "html": "Fling my boss up the office 🚀",
+   "top": 560
+  },
+  {
+   "id": "c2",
+   "html": "🍜 PANTRY or 👔 CEO?<br>Comment 👇",
+   "top": 520,
+   "yellow": true
+  }
+ ],
+ "outro": {
+  "big": "",
+  "sub": "",
+  "options": []
+ },
+ "timeline": [
+  [
+   0,
+   "cue",
+   "t:go"
+  ],
+  [
+   0,
+   "show",
+   "c1"
+  ],
+  [
+   2600,
+   "hide",
+   "c1"
+  ],
+  [
+   11600,
+   "show",
+   "c2"
+  ]
+ ],
+ "taps": [],
+ "voice": [
+  {
+   "t": 0.3,
+   "text": "Not the face!",
+   "voice": "bm_george",
+   "speed": 1.0
+  },
+  {
+   "t": 1.3,
+   "text": "I fling my boss up the office.",
+   "speed": 1.15
+  },
+  {
+   "t": 11.7,
+   "text": "Pantry, or CEO? Comment.",
+   "speed": 1.1
+  }
+ ],
+ "sfx": []
+}
